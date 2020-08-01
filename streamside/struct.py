@@ -82,19 +82,18 @@ class Attribute:
 
 
 class AMRGraph:
-    def __init__(self, text: str, tid: str = None, annotator: str = None, date: str = None):
+    def __init__(self, text: str, tid: str = None, annotator: str = None):
         """
         This class consists of a text, an AMR graph for the text, and related meta data.
         :param text: the raw text.
         :param tid: the text ID.
-        :param date: the last annotation date.
         :param annotator: the annotator ID.
         """
         # meta
         self.text = ' '.join(text.split())  # strip unnecessary spaces
         self.tid = tid
-        self.date = date
         self.annotator = annotator
+        self.saved = None
 
         # graph
         self.concepts: Dict[str, Concept] = {}
