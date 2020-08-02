@@ -1,0 +1,26 @@
+acceleration-quantity
+area-quantity
+charge-quantity
+concentration-quantity
+distance-quantity
+energy-quantity
+force-quantity
+frequency-quantity
+fuel-consumption-quantity
+inductance-quantity
+magnetic-field-quantity
+magnetic-flux-quantity
+mass-quantity
+monetary-quantity
+potential-quantity
+power-quantity
+pressure-quantity
+radiation-quantity
+resistance-quantity
+score-quantity
+seismic-quantity
+speed-quantity
+temperature-quantity
+temporal-quantity
+voltage-quantity (zap!)
+volume-quantity
