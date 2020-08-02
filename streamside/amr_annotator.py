@@ -17,15 +17,15 @@ __author__ = 'Jinho D. Choi'
 import argparse
 import json
 import os
-from collections import OrderedDict
+import re
 from typing import List, Dict, Optional, Tuple
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QTextCursor
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
     QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QShortcut
 
-from streamside.struct import AMRGraph
+from streamside.struct import AMRGraph, Concept
 
 
 class CreateDialog(QDialog):
@@ -153,11 +153,11 @@ class RelationDialog(QDialog):
 
 
 class AMRAnnotator(QMainWindow):
-    def __init__(self, frames: Dict[str, str], annotator: str = 'unknown'):
+    def __init__(self, resource_dir: str, annotator: str = 'unknown'):
         super().__init__()
-        layout = self._init_central_layout('AMR Annotator: {}'.format(annotator), 600, 600)
 
-        self.frames = frames
+        # graphical user interface
+        layout = self._init_central_layout('AMR Annotator: {}'.format(annotator), 600, 600)
         self.annotator = annotator
         self.filename = None
         self.tid = -1
@@ -168,7 +168,28 @@ class AMRAnnotator(QMainWindow):
         self._init_annotation(layout)
         self._init_menubar()
 
+        # resources
+        self.frames = None
+        self.init_resources(resource_dir)
+
+        # constants
+        self.COLOR_COVERED_TEXT = 'lightgray'
+        self.COLOR_SELECTED_PARENT = 'lightpink'
+        self.COLOR_SELECTED_CHILD = 'lightsteelblue'
+
+        # fields
+        self.re_concept_id = re.compile(r'^c\d+$')
+        self.selected_parent = None
+        self.selected_child = None
+
     ########################################  Init  ########################################
+
+    def init_resources(self, resource_dir: str):
+        # frames
+        frames = json.load(open(os.path.join(resource_dir, 'frames-arg_descriptions.json')))
+        for k, v in frames.items(): frames[k] = '\n'.join(['{}: {}'.format(label, desc) for label, desc in sorted(v.items())])
+        self.frames = frames
+        # TODO: initialize more resources
 
     def _init_central_layout(self, title: str, width: int, height: int) -> QGridLayout:
         widget = QWidget()
@@ -219,12 +240,6 @@ class AMRAnnotator(QMainWindow):
         menu.addSeparator()
         menu.addAction(action('Quit', 'Ctrl+Q', qApp.quit))
 
-        # navigate
-        menu = menubar.addMenu('Navigate')
-        menu.addAction(action('Previous', 'Ctrl+,', self.menu_navigate_previous))
-        menu.addAction(action('Next', 'Ctrl+.', self.menu_navigate_next))
-        menu.addAction(action('Goto', 'Ctrl+/', self.menu_navigate_goto))
-
         # edit
         menu = menubar.addMenu('Edit')
         menu.addAction(action('Concept', 'C', self.menu_create_concept))
@@ -233,6 +248,21 @@ class AMRAnnotator(QMainWindow):
         menu.addSeparator()
         menu.addAction(action('Update', 'U', self.menu_update))
         menu.addAction(action('Delete', 'D', self.menu_delete))
+
+        # select
+        menu = menubar.addMenu('Select')
+        menu.addAction(action('Select Parent', '[', self.menu_select_parent))
+        menu.addAction(action('Select Child', "]", self.menu_select_child))
+        menu.addSeparator()
+        menu.addAction(action('Deselect Parent', 'Shift+[', self.menu_deselect_parent))
+        menu.addAction(action('Deselect Child', 'Shift+]', self.menu_deselect_child))
+        menu.addAction(action('Deselect All', 'Shift+\\', self.menu_deselect_all))
+
+        # navigate
+        menu = menubar.addMenu('Navigate')
+        menu.addAction(action('Previous', 'Ctrl+,', self.menu_navigate_previous))
+        menu.addAction(action('Next', 'Ctrl+.', self.menu_navigate_next))
+        menu.addAction(action('Jump to', 'Ctrl+/', self.menu_navigate_goto))
 
     def menu_file_open(self):
         def open_txt(txt_file):
@@ -278,13 +308,13 @@ class AMRAnnotator(QMainWindow):
         print(self.getWindowTitle())
 
     def menu_navigate_previous(self):
-        print('Previous')
+        self.select_graph(self.tid - 1)
 
     def menu_navigate_next(self):
-        print('Next')
+        self.select_graph(self.tid + 1)
 
     def menu_navigate_goto(self):
-        print('Goto')
+        print('Jump to')
 
     def menu_create_concept(self):
         text = self.lb_text.selectedText().lower()
@@ -293,13 +323,11 @@ class AMRAnnotator(QMainWindow):
         name = ConceptDialog(self, text, self.frames).exec_()
         if name:
             self.graphs[self.tid].add_concept(name, begin, end)
-            self.select_graph(self.tid)
+            self.refresh_graph()
 
     # TODO: non-recursive selection
     def menu_create_relation(self):
         c = self.te_graph.textCursor()
-
-        # '<span style=\"color:#ff0000;\" >Red Text</span> Black <span style=\"color:#ffff00;\" >Blue Text</span>'
 
         cids = ['c0', 'c1', 'c2', 'c3']
         labels = ['ARG0', 'ARG1', 'ARG2', 'ARG3', 'ARG4']
@@ -308,7 +336,7 @@ class AMRAnnotator(QMainWindow):
         t = RelationDialog(self, parent_id, cids, labels).exec_()
         if t:
             self.graphs[self.tid].add_relation(parent_id, *t)
-            self.select_graph(self.tid)
+            self.refresh_graph()
 
     def menu_create_attribute(self):
         print('Attribute')
@@ -319,15 +347,86 @@ class AMRAnnotator(QMainWindow):
     def menu_delete(self):
         print('Delete')
 
+    def menu_select_parent(self):
+        con = self.selected_concept()
+        if con is not None:
+            self.selected_parent = con
+            self.refresh_graph()
+
+    def menu_select_child(self):
+        con = self.selected_concept()
+        if con is not None:
+            self.selected_child = con
+            self.refresh_graph()
+
+    def menu_deselect_parent(self):
+        self.selected_parent = None
+        self.refresh_graph()
+
+    def menu_deselect_child(self):
+        self.selected_child = None
+        self.refresh_graph()
+
+    def menu_deselect_all(self):
+        self.menu_deselect_parent()
+        self.menu_deselect_child()
+
     ########################################  SETTERS  ########################################
+
+    def display_text(self, graph: AMRGraph):
+        def color(cid):
+            if self.selected_parent and cid == self.selected_parent.name:
+                return self.COLOR_SELECTED_PARENT
+            if self.selected_child and cid == self.selected_child.name:
+                return self.COLOR_SELECTED_CHILD
+            return self.COLOR_COVERED_TEXT
+
+        begin = 0
+        tt = []
+
+        for cid, con in sorted(graph.concepts.items(), key=lambda t: t[1].begin):
+            if con.begin < 0 or con.end < 0: continue
+            tt.append(graph.text[begin:con.begin])
+            tt.append('<span style="background-color:{};">'.format(color(cid)))
+            tt.append(graph.text[con.begin:con.end])
+            tt.append('</span>')
+            begin = con.end
+
+        tt.append(graph.text[begin:len(graph.text)])
+        self.lb_text.setText(''.join(tt))
+
+    def display_graph(self, graph: AMRGraph):
+        def set_color(c, color):
+            if c is None: return
+            cursor = self.te_graph.textCursor()
+            cursor.setPosition(c.begin, QTextCursor.MoveAnchor)
+            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, len(c.name))
+            cursor.insertHtml('<span style="background-color:{};">{}</span>'.format(color, c.name))
+
+        self.te_graph.setText('\n'.join(graph.penman_graphs()))
+        set_color(self.selected_parent, self.COLOR_SELECTED_PARENT)
+        set_color(self.selected_child, self.COLOR_SELECTED_CHILD)
 
     def select_graph(self, tid: int):
         if 0 <= tid < len(self.graphs):
             self.tid = tid
             graph = self.graphs[tid]
             self.lb_tid.setText('{}:'.format(tid))
-            self.lb_text.setText(graph.text)
-            self.te_graph.setText('\n'.join(graph.penman_graphs()))
+            self.display_text(graph)
+            self.display_graph(graph)
+            self.te_graph.repaint()
+
+    def refresh_graph(self):
+        self.select_graph(self.tid)
+
+    def selected_concept(self) -> Optional[Concept]:
+        cursor = self.te_graph.textCursor()
+        cid = cursor.selectedText()
+        if self.re_concept_id.match(cid):
+            begin = cursor.selectionStart()
+            end = begin + len(cid)
+            return Concept(cid, begin, end)
+        return None
 
     def get_selected_text(self):
         # TODO: strip white spaces and segmented characters
@@ -336,14 +435,6 @@ class AMRAnnotator(QMainWindow):
     def get_frameset_id(self):
         # TODO: suggest the frameset ID
         return self.get_selected_text()
-
-    def handle_sct_start(self):
-        s = '(x{} / {}'.format(self.var_id, self.get_frameset_id())
-        self.var_id += 1
-        self.te_graph.setPlainText(s)
-
-    def handle_btn_click(self):
-        print(self.lb_text.selectedText())
 
 
 def message_box(text: str, icon: int, default_button: int = -1) -> int:
@@ -358,13 +449,11 @@ def message_box(text: str, icon: int, default_button: int = -1) -> int:
 def main():
     parser = argparse.ArgumentParser(description='StreamSide: AMR Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-f', '--frame_file', type=str, default='resources/propbank-amr-frames-arg-descr.json', help='filepath to the JSON file containing frame information')
+    parser.add_argument('-r', '--resources', type=str, default='resources/english', help='path to the directory containing resource files')
     args = parser.parse_args()
 
-    frames = json.load(open(args.frame_file), object_pairs_hook=OrderedDict)
-    for k, v in frames.items(): frames[k] = '\n'.join(['{}: {}'.format(label, desc) for label, desc in v.items()])
     app = QApplication([])
-    gui = AMRAnnotator(frames, args.annotator)
+    gui = AMRAnnotator(args.resources, args.annotator)
     gui.show()
     app.exec_()
 
