@@ -14,7 +14,11 @@
 
 __author__ = 'Jinho D. Choi'
 
+import glob
 import json
+import os
+from collections import OrderedDict
+from xml.etree import ElementTree
 
 
 def frames_to_json(text_file: str):
@@ -46,5 +50,39 @@ def frames_to_json(text_file: str):
     json.dump(d, open(json_file, 'w'), indent=2)
 
 
+def propbank_frames_to_json(frame_dir: str, json_file: str, arg_file: str):
+    frames = dict()
+
+    for filename in sorted(glob.glob(os.path.join(frame_dir, '*.xml'))):
+        tree = ElementTree.parse(filename)
+        source = os.path.basename(filename)
+        for predicate in tree.findall('predicate'):
+            lemma = predicate.attrib['lemma'].replace('-', '_')
+            d = frames.setdefault(lemma, {'sources': [], 'aliases': {lemma}})
+            sources = d['sources']
+            aliases = d['aliases']
+            sources.append(source)
+            for alias in predicate.iter('alias'): aliases.add(alias.text.replace('-', '_'))
+            if len(sources) > 1: print('{}: {}'.format(lemma, str(sources)))
+
+    for lemma, d in frames.items(): d['aliases'] = sorted(list(d['aliases']))
+    print("Predicates from frameset files: {}".format(len(frames)))
+
+    source = os.path.basename(arg_file)
+    for line in open(arg_file):
+        lemma = line.split()[0]
+        lemma = lemma[:lemma.rfind('-')]
+        lemma = lemma.replace('-', '_')
+        if lemma not in frames:
+            frames[lemma] = {'sources': [source], 'aliases': [lemma]}
+
+    print("+ AMR: {}".format(len(frames)))
+    frames = OrderedDict({k: v for k, v in sorted(frames.items())})
+    json.dump(frames, open(json_file, 'w'), indent=2)
+    return frames
+
+
 if __name__ == "__main__":
-    frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
+    # frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
+    propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/lexica/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
+    pass

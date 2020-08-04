@@ -20,15 +20,17 @@ from typing import Tuple, Optional, List, Dict
 
 
 class Concept:
-    def __init__(self, name: str, begin: int = -1, end: int = -1):
+    def __init__(self, name: str, begin: int = -1, end: int = -1, attr: bool = False):
         """
         :param name: the name of this concept
         :param begin: the offset of the first character in the original text (inclusive)
         :param end: the offset of the last character in the original text (exclusive)
+        :param attr: if True, this concept is an attribute
         """
         self.name = name
         self.begin = begin
         self.end = end
+        self.attr = attr
 
     @classmethod
     def factory(cls, d: Dict) -> 'Concept':
@@ -36,7 +38,7 @@ class Concept:
         :param d: the dictionary to initialize member fields.
         :return: the concept object initialized by the dictionary.
         """
-        return Concept(d['name'], d['begin'], d['end'])
+        return Concept(d['name'], d['begin'], d['end'], d['attr'])
 
 
 class Relation:
@@ -61,27 +63,7 @@ class Relation:
         return Relation(d['pid'], d['cid'], d['label'], d['ref'])
 
 
-class Attribute:
-    def __init__(self, pid: str, name: str, label: str):
-        """
-        :param pid: the ID of the parent concept.
-        :param name: the name of this attribute.
-        :param label: the label of this attribute.
-        """
-        self.pid = pid
-        self.name = name
-        self.label = label
-
-    @classmethod
-    def factory(cls, d: Dict) -> 'Attribute':
-        """
-        :param d: the dictionary to initialize member fields.
-        :return: the attribute object initialized by the dictionary.
-        """
-        return Attribute(d['pid'], d['name'], d['label'])
-
-
-class AMRGraph:
+class Graph:
     def __init__(self, text: str, tid: str = None, annotator: str = None):
         """
         This class consists of a text, an AMR graph for the text, and related meta data.
@@ -98,12 +80,10 @@ class AMRGraph:
         # graph
         self.concepts: Dict[str, Concept] = {}
         self.relations: Dict[str, Relation] = {}
-        self.attributes: Dict[str, Attribute] = {}
 
         # to be assigned
         self._concept_id = 0
         self._relation_id = 0
-        self._attribute_id = 0
 
     @property
     def root_ids(self) -> List[str]:
@@ -120,12 +100,13 @@ class AMRGraph:
         """
         return self.concepts.get(concept_id, None)
 
-    # TODO: check if the same concept already exists
-    def add_concept(self, name: str, begin: int = -1, end: int = -1) -> str:
+    # TODO: check if the concept already exists
+    def add_concept(self, name: str, begin: int = -1, end: int = -1, attr: bool = False) -> str:
         """
         :param name: the name of the concept to be added (e.g., believe-01, boy).
         :param begin: the offset of the beginning character in self.text.
         :param end: the offset of the ending character in self.text.
+        :param attr: if True, the added concept is an attribute.
         :return: the ID of the added concept.
         """
 
@@ -150,7 +131,7 @@ class AMRGraph:
             begin, end = -1, -1
 
         # add concept
-        self.concepts[cid] = Concept(name, begin, end)
+        self.concepts[cid] = Concept(name, begin, end, attr)
         return cid
 
     def update_concept(self, concept_id: str, name: str) -> Optional[Concept]:
@@ -175,10 +156,6 @@ class AMRGraph:
         for rid, r in list(self.relations.items()):
             if r.pid == concept_id or r.cid == concept_id:
                 del self.relations[rid]
-
-        for aid, a in list(self.attributes.items()):
-            if a.pid == concept_id:
-                del self.attributes[aid]
 
         return self.concepts.pop(concept_id)
 
@@ -205,7 +182,7 @@ class AMRGraph:
         if child_id not in self.concepts: return []
         return [(rid, r) for rid, r in self.relations.items() if r.cid == child_id]
 
-    # TODO: check if the same relation already exists
+    # TODO: check if the relation already exists
     def add_relation(self, parent_id: str, child_id: str, label: str, ref: bool = False) -> str:
         """
         :param label: the label of the relation to be added.
@@ -241,56 +218,6 @@ class AMRGraph:
         """
         return self.relations.pop(relation_id) if relation_id in self.relations else None
 
-    def get_attribute(self, attribute_id: str) -> Optional[Attribute]:
-        """
-        :param attribute_id: the attribute ID.
-        :return: the attribute object if exists; otherwise, None
-        """
-        return self.attributes.get(attribute_id, None)
-
-    def get_attributes(self, parent_id: str) -> List[Tuple[str, Attribute]]:
-        """
-        :param parent_id: the parent ID.
-        :return: list of (attribute ID, Attribute) with the specific parent.
-        """
-        if parent_id not in self.concepts: return []
-        return [(aid, a) for aid, a in self.attributes.items() if a.pid == parent_id]
-
-    def add_attribute(self, parent_id: str, name: str, label: str) -> str:
-        """
-        :param parent_id: the ID of the parent concept.
-        :param label: the label of the attribute to be added.
-        :param name: the name of the attribute.
-        :return: the ID of the added attribute.
-        """
-        # generate ID
-        aid = 'a{}'.format(self._attribute_id)
-        self._attribute_id += 1
-
-        # add attribute
-        self.attributes[aid] = Attribute(parent_id, name, label)
-        return aid
-
-    def update_attribute(self, attribute_id: str, name: Optional[str] = None, label: Optional[str] = None) -> Optional[Attribute]:
-        """
-        :param attribute_id: the ID of the attribute.
-        :param name: the name of the attribute to be updated (if not None).
-        :param label: the label of the attribute to be updated (if not None).
-        :return: Attribute if exists; otherwise, None.
-        """
-        a = self.attributes.get(attribute_id, None)
-        if a is None: return None
-        if name: a.name = name
-        if label: a.label = label
-        return a
-
-    def remove_attribute(self, attribute_id: str) -> Optional[Attribute]:
-        """
-        :param attribute_id: the ID of the attribute to be removed.
-        :return: Attribute if exists; otherwise, None.
-        """
-        return self.attributes.pop(attribute_id) if attribute_id in self.attributes else None
-
     def penman(self, concept_id: str) -> str:
         """
         :param concept_id: the ID of the root concept.
@@ -300,14 +227,14 @@ class AMRGraph:
         def repr_concept(cid: str, ref: bool) -> str:
             if ref: return cid
             c = self.concepts[cid]
+            if c.attr: return c.name
             return '({} / {}'.format(cid, c.name)
 
+        # TODO: sort the relation labels per node
         def aux(cid: str, ref: bool, r: List[str], indent: str):
             r.append(repr_concept(cid, ref))
             if not ref:
                 indent += ' ' * (len(cid) + 2)
-                for aid, attribute in self.get_attributes(cid):
-                    r.append('\n{}:{} {}'.format(indent, attribute.label, attribute.name))
                 for rid, relation in self.child_relations(cid):
                     r.append('\n{}:{} '.format(indent, relation.label))
                     aux(relation.cid, relation.ref, r, indent + ' ' * (len(relation.label) + 2))
@@ -329,29 +256,27 @@ class AMRGraph:
         """
         return json.dumps(self, default=lambda x: x.__dict__, **kwargs)
 
-    def clone(self) -> 'AMRGraph':
+    def clone(self) -> 'Graph':
         """
         :return: a clone of this AMR object.
         """
-        amr = AMRGraph('')
+        amr = Graph('')
         amr.__dict__ = copy.deepcopy(self.__dict__)
         return amr
 
     @classmethod
-    def factory(cls, params: Dict) -> 'AMRGraph':
+    def factory(cls, params: Dict) -> 'Graph':
         """
         :param params: the return value of json.loads(#json_dumps()).
         :return: an AMR object initialized by the parameters.
         """
-        graph = AMRGraph('')
+        graph = Graph('')
 
         for k, v in params.items():
             if k == 'concepts':
                 v = {cid: Concept.factory(c) for cid, c in v.items()}
             elif k == 'relations':
                 v = {rid: Relation.factory(r) for rid, r in v.items()}
-            elif k == 'attributes':
-                v = {aid: Attribute.factory(a) for aid, a in v.items()}
 
             graph.__dict__[k] = v
 

@@ -1,5 +1,7 @@
 # StreamSide
 
-StreamSide is an AMR annotation tool developed by Emory University in collaboration with Brandeis University.
+StreamSide is an annotation toolkit developed by Emory University.
+
+* Graph Annotator: build semantic networks out of plain text.
 
 

@@ -25,10 +25,10 @@ from PyQt5.QtGui import QKeySequence, QTextCursor
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
     QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QShortcut
 
-from streamside.struct import AMRGraph, Concept
+from streamside.struct import Graph, Concept
 
 
-class CreateDialog(QDialog):
+class InputDialog(QDialog):
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -46,12 +46,12 @@ class CreateDialog(QDialog):
         self.close()
 
 
-class ConceptDialog(CreateDialog):
+class ConceptDialog(InputDialog):
     def __init__(self, parent, name: str, frames: Dict[str, Dict[str, str]]):
         super().__init__(parent)
-        layout = QGridLayout()
-        self.setMinimumWidth(350)
         self.setWindowTitle('Create a concept')
+        self.setMinimumWidth(350)
+        layout = QGridLayout()
         self.setLayout(layout)
         self.frames = frames
 
@@ -152,16 +152,20 @@ class RelationDialog(QDialog):
         return t if self.ok else None
 
 
-class AMRAnnotator(QMainWindow):
+class GraphAnnotator(QMainWindow):
     def __init__(self, resource_dir: str, annotator: str = 'unknown'):
         super().__init__()
 
+        # primary fields
+
+
+
         # graphical user interface
-        layout = self._init_central_layout('AMR Annotator: {}'.format(annotator), 600, 600)
+        layout = self._init_central_widget('StreamSide Graph Annotator: {}'.format(annotator), 600, 600)
         self.annotator = annotator
         self.filename = None
         self.tid = -1
-        self.graphs: List[AMRGraph] = []
+        self.graphs: List[Graph] = []
         self.lb_tid = QLabel('Index:')
         self.lb_text = QLabel('Open a text or json file to start annotating')
         self.te_graph = QTextEdit()
@@ -184,14 +188,7 @@ class AMRAnnotator(QMainWindow):
 
     ########################################  Init  ########################################
 
-    def init_resources(self, resource_dir: str):
-        # frames
-        frames = json.load(open(os.path.join(resource_dir, 'frames-arg_descriptions.json')))
-        for k, v in frames.items(): frames[k] = '\n'.join(['{}: {}'.format(label, desc) for label, desc in sorted(v.items())])
-        self.frames = frames
-        # TODO: initialize more resources
-
-    def _init_central_layout(self, title: str, width: int, height: int) -> QGridLayout:
+    def _init_central_widget(self, title: str, width: int, height: int) -> QGridLayout:
         widget = QWidget()
         layout = QGridLayout()
         widget.setLayout(layout)
@@ -201,6 +198,15 @@ class AMRAnnotator(QMainWindow):
         self.setMinimumSize(width, height)
 
         return layout
+
+    def init_resources(self, resource_dir: str):
+        # frames
+        frames = json.load(open(os.path.join(resource_dir, 'frames-arg_descriptions.json')))
+        for k, v in frames.items(): frames[k] = '\n'.join(['{}: {}'.format(label, desc) for label, desc in sorted(v.items())])
+        self.frames = frames
+        # TODO: initialize more resources
+
+
 
     def _init_annotation(self, layout: QGridLayout):
         # text
@@ -276,7 +282,7 @@ class AMRAnnotator(QMainWindow):
             else:
                 fin = open(txt_file)
                 tid = os.path.basename(txt_file)[:-4]
-                self.graphs = [AMRGraph(text, '{}.{}'.format(tid, i), self.annotator) for i, text in enumerate(fin)]
+                self.graphs = [Graph(text, '{}.{}'.format(tid, i), self.annotator) for i, text in enumerate(fin)]
 
         def open_json(json_file):
             # TODO
@@ -309,12 +315,15 @@ class AMRAnnotator(QMainWindow):
 
     def menu_navigate_previous(self):
         self.select_graph(self.tid - 1)
+        # TODO: init
 
     def menu_navigate_next(self):
         self.select_graph(self.tid + 1)
+        # TODO: init
 
     def menu_navigate_goto(self):
         print('Jump to')
+        # TODO: init
 
     def menu_create_concept(self):
         text = self.lb_text.selectedText().lower()
@@ -373,7 +382,7 @@ class AMRAnnotator(QMainWindow):
 
     ########################################  SETTERS  ########################################
 
-    def display_text(self, graph: AMRGraph):
+    def display_text(self, graph: Graph):
         def color(cid):
             if self.selected_parent and cid == self.selected_parent.name:
                 return self.COLOR_SELECTED_PARENT
@@ -395,7 +404,7 @@ class AMRAnnotator(QMainWindow):
         tt.append(graph.text[begin:len(graph.text)])
         self.lb_text.setText(''.join(tt))
 
-    def display_graph(self, graph: AMRGraph):
+    def display_graph(self, graph: Graph):
         def set_color(c, color):
             if c is None: return
             cursor = self.te_graph.textCursor()
@@ -449,11 +458,11 @@ def message_box(text: str, icon: int, default_button: int = -1) -> int:
 def main():
     parser = argparse.ArgumentParser(description='StreamSide: AMR Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-r', '--resources', type=str, default='resources/english', help='path to the directory containing resource files')
+    parser.add_argument('-r', '--resources', type=str, default='resources/amr', help='path to the directory containing resource files')
     args = parser.parse_args()
 
     app = QApplication([])
-    gui = AMRAnnotator(args.resources, args.annotator)
+    gui = GraphAnnotator(args.resources, args.annotator)
     gui.show()
     app.exec_()
 
