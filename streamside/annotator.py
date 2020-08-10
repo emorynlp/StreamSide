@@ -20,11 +20,10 @@ import os
 import re
 from typing import List, Dict, Optional, Tuple, Callable, Set
 
-from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
-    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar
+    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar
 
 from streamside.struct import Graph, OffsetMap, Offset
 
@@ -56,7 +55,7 @@ class ConceptDialog(InputDialog):
         self.setLayout(layout)
         self.concept_dict = parent.concept_dict
 
-        # input
+        # input name
         completer = QCompleter(parent.concept_list)
         completer.setMaxVisibleItems(50)
         self.le_name = QLineEdit()
@@ -64,19 +63,30 @@ class ConceptDialog(InputDialog):
         self.le_name.setCompleter(completer)
 
         layout.addWidget(QLabel('Enter the concept name:'), 0, 0, 1, 3)
-        layout.addWidget(self.le_name, 1, 0, 1, 3)
+        layout.addWidget(self.le_name, 1, 0, 1, 2)
+
+        # check attribute
+        w = QWidget()
+        l = QHBoxLayout()
+        w.setLayout(l)
+        self.attribute = QCheckBox()
+        l.addWidget(self.attribute)
+        l.addWidget(QLabel('Attribute'))
+        layout.addWidget(w, 1, 2)
 
         # buttons
         self.btn_describe = QPushButton("Describe", self)
         self.btn_describe.clicked.connect(self.button_describe)
+        layout.addWidget(self.btn_ok, 2, 0)
+        layout.addWidget(self.btn_describe, 2, 1)
+        layout.addWidget(self.btn_cancel, 2, 2)
 
         # shortcut
         self.sct_describe = QShortcut(QKeySequence('Ctrl+D'), self)
         self.sct_describe.activated.connect(self.button_describe)
 
-        layout.addWidget(self.btn_ok, 2, 0)
-        layout.addWidget(self.btn_describe, 2, 1)
-        layout.addWidget(self.btn_cancel, 2, 2)
+        self.sct_attribute = QShortcut(QKeySequence('Ctrl+R'), self)
+        self.sct_attribute.activated.connect(self.check_attribute)
 
         # description
         self.lb_desc = QPlainTextEdit('Description')
@@ -89,69 +99,89 @@ class ConceptDialog(InputDialog):
         self.lb_desc.setPlainText(text)
         self.lb_desc.repaint()
 
-    def exec_(self) -> Optional[str]:
+    def check_attribute(self):
+        self.attribute.setChecked(not self.attribute.isChecked())
+
+    def exec_(self) -> Optional[Tuple[str, bool]]:
         super().exec_()
-        return self.le_name.text().strip() if self.ok else None
+        return (self.le_name.text().strip(), self.attribute.isChecked()) if self.ok else None
 
 
-class RelationDialog(QDialog):
-    def __init__(self, parent, parent_id, concept_ids, labels):
+class RelationDialog(InputDialog):
+    def __init__(self, parent, parent_desc: str, child_desc: str):
         super().__init__(parent)
         self.setWindowTitle('Create a relation')
+        self.setMinimumWidth(350)
         layout = QGridLayout()
         self.setLayout(layout)
-        # layout.setAlignment(Qt.AlignLeft)
+        self.relation_dict = parent.relation_dict
 
-        # parent
-        l = QLabel('Parent: {}'.format(parent_id))
-        layout.addWidget(l, 0, 0)
+        # parent/child descriptions
+        layout.addWidget(QLabel('Parent: {}'.format(parent_desc)), 0, 0, 1, 3)
+        layout.addWidget(QLabel('Child: {}'.format(child_desc)), 1, 0, 1, 2)
 
-        # children
+        # input role
+        completer = QCompleter(parent.relation_list)
+        completer.setMaxVisibleItems(50)
+        self.le_role = QLineEdit()
+        self.le_role.setCompleter(completer)
+        layout.addWidget(self.le_role, 2, 0, 1, 2)
+
+        # check referent/inverse
         w = QWidget()
-        l = QHBoxLayout()
+        l = QGridLayout()
+        l.setContentsMargins(0, 0, 0, 0)
         w.setLayout(l)
-        self.children = QComboBox()
-        self.children.addItems(concept_ids)
-        l.addWidget(QLabel('Child:'))
-        l.addWidget(self.children)
-        layout.addWidget(w, 0, 1)
 
-        # labels
-        w = QWidget()
-        l = QHBoxLayout()
-        w.setLayout(l)
-        self.labels = QComboBox()
-        self.labels.addItems(labels)
-        l.addWidget(QLabel('Label:'))
-        l.addWidget(self.labels)
-        layout.addWidget(w, 0, 2)
+        self.referent = QCheckBox()
+        l.addWidget(self.referent, 0, 0)
+        l.addWidget(QLabel('Referent'), 0, 1)
 
-        # referential
-        w = QWidget()
-        l = QHBoxLayout()
-        w.setLayout(l)
-        self.ref = QCheckBox()
-        l.addWidget(QLabel('Ref:'))
-        l.addWidget(self.ref)
-        layout.addWidget(w, 0, 3)
+        self.inverse = QCheckBox()
+        l.addWidget(self.inverse, 1, 0)
+        l.addWidget(QLabel('Inverse'), 1, 1)
+        layout.addWidget(w, 1, 2, 2, 1)
 
-        self.ok = False
-        self.btn_ok = QPushButton("Ok", self)
-        self.btn_ok.clicked.connect(self.button_press)
-        self.btn_cancel = QPushButton("Cancel", self)
-        self.btn_cancel.clicked.connect(self.button_press)
+        # buttons
+        self.btn_describe = QPushButton("Describe", self)
+        self.btn_describe.clicked.connect(self.button_describe)
+        layout.addWidget(self.btn_ok, 3, 0)
+        layout.addWidget(self.btn_describe, 3, 1)
+        layout.addWidget(self.btn_cancel, 3, 2)
 
-        layout.addWidget(self.btn_ok, 1, 0, 1, 2)
-        layout.addWidget(self.btn_cancel, 1, 2, 1, 2)
+        # shortcut
+        self.sct_describe = QShortcut(QKeySequence('Ctrl+D'), self)
+        self.sct_describe.activated.connect(self.button_describe)
+        self.sct_referent = QShortcut(QKeySequence('Ctrl+R'), self)
+        self.sct_referent.activated.connect(self.check_referent)
+        self.sct_inverse = QShortcut(QKeySequence('Ctrl+F'), self)
+        self.sct_inverse.activated.connect(self.check_inverse)
 
-    def button_press(self):
-        self.ok = self.sender() == self.btn_ok
-        self.close()
+        # description
+        self.lb_desc = QPlainTextEdit('Description')
+        self.lb_desc.setReadOnly(True)
+        layout.addWidget(self.lb_desc, 4, 0, 1, 3)
 
-    def exec_(self) -> Optional[Tuple[str, str]]:
+    def button_describe(self):
+        v = self.relation_dict.get(self.le_role.text().strip(), None)
+        text = v['description'] if v else 'No description available'
+        self.lb_desc.setPlainText(text)
+        self.lb_desc.repaint()
+
+    def check_referent(self):
+        self.referent.setChecked(not self.referent.isChecked())
+
+    def check_inverse(self):
+        self.inverse.setChecked(not self.inverse.isChecked())
+
+    def exec_(self) -> Optional[Tuple[str, bool]]:
         super().exec_()
-        t = self.children.currentText(), self.labels.currentText(), self.ref.isChecked()
-        return t if self.ok else None
+        if self.ok:
+            label = self.le_role.text().strip()
+            if self.inverse.isChecked(): label += '-of'
+            return label, self.referent.isChecked()
+        else:
+            return None
 
 
 class Annotator(QMainWindow):
@@ -183,7 +213,7 @@ class Annotator(QMainWindow):
         self.COLOR_COVERED_TEXT_SPAN = 'khaki'
 
         # graphical user interface
-        layout = self._init_central_widget('StreamSide Graph Annotator: {}'.format(annotator), 600, 600)
+        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 600, 600)
         self.lb_tid = QLabel('Index:')
         self.lb_text = QLabel('Open a text or json file to start annotating')
         self.te_graph = QTextEdit()
@@ -227,7 +257,6 @@ class Annotator(QMainWindow):
         w = QWidget()
         l = QHBoxLayout()
         w.setLayout(l)
-        w.setContentsMargins(0, 0, 0, 0)
         l.setContentsMargins(0, 0, 0, 0)
 
         l.addWidget(self.lb_tid, 2)
@@ -264,20 +293,19 @@ class Annotator(QMainWindow):
         menu = menubar.addMenu('Edit')
         menu.addAction(action('Create Concept', 'C', self.menu_create_concept))
         menu.addAction(action('Create Relation', 'R', self.menu_create_relation))
-        menu.addAction(action('Create Attribute', 'A', self.menu_create_attribute))
         menu.addSeparator()
         menu.addAction(action('Update', 'U', self.menu_update))
         menu.addAction(action('Delete', 'D', self.menu_delete))
 
         # select
         menu = menubar.addMenu('&Select')
-        menu.addAction(action('Select Parent', 'w', self.menu_select_parent))
-        menu.addAction(action('Select Child', "e", self.menu_select_child))
-        menu.addAction(action('Select Span', 'x', self.menu_select_text_span))
+        menu.addAction(action('Select Text Span', 'x', self.menu_select_text_span))
+        menu.addAction(action('Select Parent ID', 'w', self.menu_select_parent))
+        menu.addAction(action('Select Child ID', "e", self.menu_select_child))
         menu.addSeparator()
-        menu.addAction(action('Deselect Parent', 'Shift+w', self.menu_deselect_parent))
-        menu.addAction(action('Deselect Child', 'Shift+e', self.menu_deselect_child))
-        menu.addAction(action('Deselect Span', 'Shift+x', self.menu_deselect_text_span))
+        menu.addAction(action('Deselect Text Span', 'Shift+x', self.menu_deselect_text_span))
+        menu.addAction(action('Deselect Parent ID', 'Shift+w', self.menu_deselect_parent))
+        menu.addAction(action('Deselect Child ID', 'Shift+e', self.menu_deselect_child))
 
         # navigate
         menu = menubar.addMenu('Navigate')
@@ -303,8 +331,10 @@ class Annotator(QMainWindow):
                 self.filename = json_file
 
         def open_json(json_file):
-            # TODO
             self.filename = json_file
+            with open(self.filename) as fin:
+                graphs = json.load(fin)
+                self.graphs = [Graph.factory(graph) for graph in graphs]
 
         # get filename
         filename = QFileDialog.getOpenFileName(self, 'Open File')[0]
@@ -314,24 +344,28 @@ class Annotator(QMainWindow):
         # check extension
         if filename[-4:].lower() == '.txt':
             open_txt(filename)
-            self.statusbar.showMessage('Create {}'.format(self.filename))
         elif filename[-5:].lower() == '.json':
             open_json(filename)
-            self.statusbar.showMessage('Open {}'.format(self.filename))
         else:
-            self.statusbar.showMessage('Cannot open "{}" - unsupported file type'.format(os.path.basename(filename)))
-            # message_box(text, QMessageBox.Ok)
+            self.statusbar.showMessage('Unsupported file type: {}'.format(os.path.basename(filename)))
             return
 
         # initialize
+        self.statusbar.showMessage('Open: {}'.format(self.filename))
         self.offset_maps = [OffsetMap(graph.tokens) for i, graph in enumerate(self.graphs)]
         self.setWindowTitle(os.path.basename(self.filename))
         self.select_annotation(0)
 
     def menu_file_save(self):
-        if not self.filename: return
-        # TODO:
-        print(self.getWindowTitle())
+        if not self.filename:
+            self.statusbar.showMessage('Output file is not specified.')
+            return
+
+        with open(self.filename, 'w') as fout:
+            d = [graph.json_dumps() for graph in self.graphs]
+            fout.write('[\n{}\n]\n'.format(',\n'.join(d)))
+
+        self.statusbar.showMessage('Save: {}'.format(self.filename))
 
     ####################  Menubar: Edit  ####################
 
@@ -340,32 +374,46 @@ class Annotator(QMainWindow):
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
         text = '_'.join(tokens).lower()
-        name = ConceptDialog(self, text).exec_()
+        t = ConceptDialog(self, text).exec_()
 
-        if name:
-            cid = graph.add_concept(name, self.selected_text_spans)
+        if t:
+            name = t[0]
+            attr = t[1]
+            cid = graph.add_concept(name, self.selected_text_spans, attr)
             self.selected_text_spans.clear()
             self.refresh_annotation()
-            self.statusbar.showMessage('Concept "{} / {}" is created for {}'.format(cid, name, str(tokens)))
+            self.statusbar.showMessage('Concept created: ({} / {}) - {}'.format(cid, name, str(tokens)))
         else:
             self.statusbar.showMessage('Concept creation is cancelled.')
 
-    # TODO: non-recursive selection
     def menu_create_relation(self):
-        c = self.te_graph.textCursor()
+        if self.selected_parent is None:
+            self.statusbar.showMessage('Parent ID is not selected.')
+            return
 
-        cids = ['c0', 'c1', 'c2', 'c3']
-        labels = ['ARG0', 'ARG1', 'ARG2', 'ARG3', 'ARG4']
+        if self.selected_child is None:
+            self.statusbar.showMessage('Child ID is not selected.')
+            return
 
+        graph = self.current_graph
+        parent_id = self.selected_parent[0]
+        child_id = self.selected_child[0]
+        parent_concept = graph.get_concept(parent_id)
+        child_concept = graph.get_concept(child_id)
+        parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
+        child_desc = '({} / {})'.format(child_id, child_concept.name)
 
-        parent_id = c.selectedText()
-        t = RelationDialog(self, parent_id, cids, labels).exec_()
+        t = RelationDialog(self, parent_desc, child_desc).exec_()
         if t:
-            self.graphs[self.tid].add_relation(parent_id, *t)
-            self.refresh_graph()
-
-    def menu_create_attribute(self):
-        print('Attribute')
+            label = t[0]
+            referent = t[1]
+            graph.add_relation(parent_id, child_id, label, referent)
+            self.selected_parent = self.selected_parent[0], None
+            self.selected_child = None
+            self.refresh_annotation()
+            self.statusbar.showMessage('Relation created: {}({}, {})'.format(label, parent_id, child_id))
+        else:
+            self.statusbar.showMessage('Relation creation is cancelled.')
 
     def menu_update(self):
         print('Update')
@@ -382,22 +430,19 @@ class Annotator(QMainWindow):
             return
 
         cid = selection[0]
-        if self.selected_parent and cid == self.selected_parent[0]:
-            self.statusbar.showMessage('{} is already selected as a parent'.format(cid))
-            return
-
-        if self.selected_child and cid == self.selected_child[0]:
-            self.statusbar.showMessage('{} is already selected as a child'.format(cid))
-            return
 
         if pctype == 'p':
+            if self.selected_parent and cid == self.selected_parent[0]: return
+            if self.selected_child and cid == self.selected_child[0]: self.selected_child = None
             self.selected_parent = selection
             pc = 'parent'
         else:
+            if self.selected_child and cid == self.selected_child[0]: return
+            if self.selected_parent and cid == self.selected_parent[0]: self.selected_parent = None
             self.selected_child = selection
             pc = 'child'
 
-        self.statusbar.showMessage('selected {}: {}'.format(pc, cid))
+        self.statusbar.showMessage('Select {}: {}'.format(pc, cid))
         self.refresh_annotation()
 
     def menu_select_parent(self):
@@ -437,35 +482,36 @@ class Annotator(QMainWindow):
         self.refresh_text()
 
         tokens = self.current_graph.get_tokens(token_ids)
-        self.statusbar.showMessage('Select "{}"'.format(' '.join(tokens)))
+        self.statusbar.showMessage('Select span: "{}"'.format(' '.join(tokens)))
 
     def menu_deselect_text_span(self):
         offset = self.selected_text_offset()
         if offset is None:
-            self.statusbar.showMessage('No text span is highlighted')
-            return
+            inter = set(self.selected_text_spans)
+        else:
+            token_ids = self.current_offset_map.token_ids(offset)
+            inter = self.selected_text_spans.intersection(token_ids)
 
-        token_ids = self.current_offset_map.token_ids(offset)
-        inter = self.selected_text_spans.intersection(token_ids)
         if inter:
             self.selected_text_spans -= inter
             self.refresh_text()
             tokens = self.current_graph.get_tokens(inter)
-            self.statusbar.showMessage('Deselect {}'.format(str(tokens)))
+            self.statusbar.showMessage('Deselect span: {}'.format(str(tokens)))
         else:
-            self.statusbar.showMessage('No selected text span is i highlighted')
+            self.statusbar.showMessage('No selected text span is highlighted')
 
     ####################  Menubar: Navigate  ####################
 
     def menu_navigate_previous(self):
+        self.menu_file_save()
         self.select_annotation(self.tid - 1)
-        # TODO: init
 
     def menu_navigate_next(self):
+        self.menu_file_save()
         self.select_annotation(self.tid + 1)
-        # TODO: init
 
     def menu_navigate_goto(self):
+        self.menu_file_save()
         print('Jump to')
         # TODO: init
 
@@ -474,6 +520,9 @@ class Annotator(QMainWindow):
     def select_annotation(self, tid: int):
         if 0 <= tid < len(self.graphs):
             self.tid = tid
+            self.selected_parent = None
+            self.selected_child = None
+            self.selected_text_spans = set()
             self.lb_tid.setText('{}:'.format(tid))
             self.refresh_text()
             self.refresh_graph()
@@ -513,8 +562,6 @@ class Annotator(QMainWindow):
         self.lb_text.setText(''.join(tt))
 
     def refresh_graph(self):
-        graph = self.current_graph
-
         def set_color(c, color):
             if c is None: return
             cid, begin = c
@@ -522,11 +569,22 @@ class Annotator(QMainWindow):
             cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, len(cid))
             cursor.insertHtml('<span style="background-color:{};">{}</span>'.format(color, cid))
 
+        def find_offset_in_graph(cid: str) -> int:
+            c = graph.get_concept(cid)
+            s = '{} / {}'.format(cid, c.name)
+            return text.find(s)
+
         cursor = self.te_graph.textCursor()
         cursor.setCharFormat(QTextCharFormat())
         cursor.clearSelection()
 
-        self.te_graph.setText('\n'.join(graph.penman_graphs()))
+        graph = self.current_graph
+        text = '\n'.join(graph.penman_graphs())
+        self.te_graph.setText(text)
+        if self.selected_parent and self.selected_parent[1] is None:
+            pid = self.selected_parent[0]
+            self.selected_parent = pid, find_offset_in_graph(pid)
+
         set_color(self.selected_parent, self.COLOR_SELECTED_PARENT)
         set_color(self.selected_child, self.COLOR_SELECTED_CHILD)
         self.te_graph.repaint()
@@ -545,7 +603,6 @@ class Annotator(QMainWindow):
         cid = cursor.selectedText()
         if self.RE_CONCEPT_ID.match(cid):
             begin = cursor.selectionStart()
-            end = begin + len(cid)
             return cid, begin
         return None
 
@@ -559,13 +616,8 @@ def message_box(text: str, icon: int, default_button: int = -1) -> int:
     return msg.exec_()
 
 
-def overlap(offset1: List[int], offset2: List[int]):
-    # TODO: check if overlaps
-    pass
-
-
 def main():
-    parser = argparse.ArgumentParser(description='StreamSide: AMR Annotator')
+    parser = argparse.ArgumentParser(description='StreamSide WiSeN Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
     parser.add_argument('-r', '--resources', type=str, default='resources/lexica', help='path to the directory containing resource files')
     args = parser.parse_args()

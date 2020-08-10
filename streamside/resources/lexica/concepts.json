@@ -44994,5 +44994,14 @@
   },
   "url": {
     "description": "Miscellaneous entity"
+  },
+  "-": {
+    "description": "Attribute"
+  },
+  "imperative": {
+    "description": "Attribute"
+  },
+  "expressive": {
+    "description": "Attribute"
   }
 }

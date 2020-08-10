@@ -152,6 +152,9 @@
   "wiki": {
     "description": "Peripheral relation"
   },
+  "op": {
+    "description": "Peripheral relation"
+  },
   "calendar": {
     "description": "Date relation"
   },

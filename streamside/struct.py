@@ -242,12 +242,12 @@ class Graph:
         return [(rid, r) for rid, r in self.relations.items() if r.child_id == child_id]
 
     # TODO: check if the relation already exists
-    def add_relation(self, parent_id: str, child_id: str, label: str, ref: bool = False) -> str:
+    def add_relation(self, parent_id: str, child_id: str, label: str, referent: bool = False) -> str:
         """
         :param label: the label of the relation to be added.
         :param parent_id: the ID of the parent concept.
         :param child_id: the ID or the constant value of the child.
-        :param ref: if True, the child concept is referential.
+        :param referent: if True, the child concept is referential.
         :return: the ID of the added relation.
         """
         # generate ID
@@ -255,7 +255,7 @@ class Graph:
         self._relation_id += 1
 
         # add relation
-        self.relations[rid] = Relation(parent_id, child_id, label, ref)
+        self.relations[rid] = Relation(parent_id, child_id, label, referent)
         return rid
 
     def update_relation(self, relation_id: str, label: str) -> Optional[Relation]:
@@ -286,7 +286,7 @@ class Graph:
         def repr_concept(cid: str, ref: bool) -> str:
             if ref: return cid
             c = self.concepts[cid]
-            if c.attribute: return c.name
+            if c.attribute and self.parent_relations(cid): return c.name
             return '({} / {}'.format(cid, c.name)
 
         # TODO: sort the relation labels per node
@@ -314,7 +314,9 @@ class Graph:
         :return: the JSON representation of this AMR object.
         """
         self.covered_token_ids = list(self.covered_token_ids)
-        return json.dumps(self, default=lambda x: x.__dict__, **kwargs)
+        s = json.dumps(self, default=lambda x: x.__dict__, **kwargs)
+        self.covered_token_ids = set(self.covered_token_ids)
+        return s
 
     def clone(self) -> 'Graph':
         """
