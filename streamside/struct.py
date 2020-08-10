@@ -16,21 +16,19 @@ __author__ = 'Jinho D. Choi'
 
 import copy
 import json
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional, List, Dict, Set, Iterable
 
 
 class Concept:
-    def __init__(self, name: str, begin: int = -1, end: int = -1, attr: bool = False):
+    def __init__(self, name: str, token_ids: List[int] = None, attribute: bool = False):
         """
-        :param name: the name of this concept
-        :param begin: the offset of the first character in the original text (inclusive)
-        :param end: the offset of the last character in the original text (exclusive)
-        :param attr: if True, this concept is an attribute
+        :param name: the name of this concept.
+        :param token_ids: the list of token IDs representing this concept.
+        :param attribute: if True, this concept is an attribute.
         """
         self.name = name
-        self.begin = begin
-        self.end = end
-        self.attr = attr
+        self.token_ids = token_ids if token_ids is not None else []
+        self.attribute = attribute
 
     @classmethod
     def factory(cls, d: Dict) -> 'Concept':
@@ -38,21 +36,21 @@ class Concept:
         :param d: the dictionary to initialize member fields.
         :return: the concept object initialized by the dictionary.
         """
-        return Concept(d['name'], d['begin'], d['end'], d['attr'])
+        return Concept(d['name'], d['token_ids'], d['attribute'])
 
 
 class Relation:
-    def __init__(self, pid: str, cid: str, label: str, ref: bool = False):
+    def __init__(self, parent_id: str, child_id: str, label: str, referent: bool = False):
         """
-        :param pid: the ID of the parent concept.
-        :param cid: the ID of the child concept.
+        :param parent_id: the ID of the parent concept.
+        :param child_id: the ID of the child concept.
         :param label: the label of this relation.
-        :param ref: if True, the child concept is referential.
+        :param referent: if True, the child concept is referential.
         """
-        self.pid = pid
-        self.cid = cid
+        self.parent_id = parent_id
+        self.child_id = child_id
         self.label = label
-        self.ref = ref
+        self.referent = referent
 
     @classmethod
     def factory(cls, d: Dict) -> 'Relation':
@@ -60,7 +58,77 @@ class Relation:
         :param d: the dictionary to initialize member fields.
         :return: the relation object initialized by the dictionary.
         """
-        return Relation(d['pid'], d['cid'], d['label'], d['ref'])
+        return Relation(d['parent_id'], d['child_id'], d['label'], d['referent'])
+
+
+class Offset:
+    def __init__(self, begin, end):
+        """
+        :param begin: the offset of the beginning character (inclusive).
+        :param end: the offset of the ending character (exclusive).
+        """
+        self.begin = begin
+        self.end = end
+
+
+class OffsetMap:
+    def __init__(self, tokens: List[str]):
+        """
+        :param tokens: the input tokens.
+        """
+        self.tokens = tokens
+        self.text = ' '.join(tokens)
+        self.begin_offset_to_id = dict()
+        self.end_offset_to_id = dict()
+        self.id_to_offset = []
+
+        prev = 0
+        for i, token in enumerate(tokens):
+            begin = prev
+            end = begin + len(token)
+            prev = end + 1
+            self.begin_offset_to_id[begin] = i
+            self.end_offset_to_id[end] = i
+            self.id_to_offset.append(Offset(begin, end))
+
+    def adjust_begin(self, offset: int) -> int:
+        """
+        :param offset: the offset of the beginning character (inclusive).
+        :return: the adjusted offset (inclusive).
+        """
+        if offset == 0 or self.text[offset - 1] == ' ': return offset
+        if self.text[offset] == ' ': return offset + 1
+        return next(i for i in range(offset - 1, -2, -1) if i < 0 or self.text[i] == ' ') + 1
+
+    def adjust_end(self, offset: int) -> int:
+        """
+        :param offset: the offset of the ending character (exclusive).
+        :return: the adjusted offset (exclusive).
+        """
+        if offset == len(self.text) or self.text[offset] == ' ': return offset
+        if self.text[offset - 1] == ' ': return offset - 1
+        return next(i for i in range(offset + 1, len(self.text) + 1) if i == len(self.text) or self.text[i] == ' ')
+
+    def token_ids(self, offset: Offset) -> Set[int]:
+        """
+        :param offset: the offset to retrieve tokens for.
+        :return: the list of token IDs representing the offsets if valid; otherwise, None.
+        """
+        if 0 <= offset.begin < len(self.text) and 0 < offset.end <= len(self.text):
+            begin = self.adjust_begin(offset.begin)
+            end = self.adjust_end(offset.end)
+            if begin < end:
+                begin = self.begin_offset_to_id[begin]
+                end = self.end_offset_to_id[end]
+                return {i for i in range(begin, end + 1)}
+        return set()
+
+    def get_offset(self, token_id: int) -> Optional[Offset]:
+        """
+        :param token_id: the ID of the token to retrieve the offset for.
+        :return: the offset representing the token if exists; otherwise, None.
+        """
+        return self.id_to_offset[token_id] if 0 <= token_id < len(self.tokens) else None
 
 
 class Graph:
@@ -72,14 +140,14 @@ class Graph:
         :param annotator: the annotator ID.
         """
         # meta
-        self.text = ' '.join(text.split())  # strip unnecessary spaces
         self.tid = tid
         self.annotator = annotator
-        self.saved = None
+        self.tokens = text.split()
 
         # graph
-        self.concepts: Dict[str, Concept] = {}
-        self.relations: Dict[str, Relation] = {}
+        self.concepts: Dict[str, Concept] = dict()
+        self.relations: Dict[str, Relation] = dict()
+        self.covered_token_ids = set()
 
         # to be assigned
         self._concept_id = 0
@@ -91,7 +159,8 @@ class Graph:
         :return: list of root concept IDs sorted by begin offsets in ascending order.
         """
         cids = [cid for cid in self.concepts if not self.parent_relations(cid)]
-        return sorted(cids, key=lambda cid: self.concepts[cid].begin)
+        cids.sort()
+        return cids
 
     def get_concept(self, concept_id: str) -> Optional[Concept]:
         """
@@ -100,38 +169,28 @@ class Graph:
         """
         return self.concepts.get(concept_id, None)
 
-    # TODO: check if the concept already exists
-    def add_concept(self, name: str, begin: int = -1, end: int = -1, attr: bool = False) -> str:
+    def add_concept(self, name: str, token_ids: Optional[Set[int]] = None, attribute: bool = False) -> Optional[str]:
         """
         :param name: the name of the concept to be added (e.g., believe-01, boy).
-        :param begin: the offset of the beginning character in self.text.
-        :param end: the offset of the ending character in self.text.
-        :param attr: if True, the added concept is an attribute.
-        :return: the ID of the added concept.
+        :param token_ids: the set of token IDs representing this concept.
+        :param attribute: if True, the added concept is an attribute.
+        :return: the ID of the added concept if added successfully; otherwise, None.
         """
+        if token_ids:
+            # check if the tokens are already covered by existing concepts
+            for tid in token_ids:
+                if tid in self.covered_token_ids: return None
 
-        def adjust_begin(offset: int) -> int:
-            if offset == 0 or self.text[offset - 1] == ' ': return offset
-            if self.text[offset] == ' ': return offset + 1
-            return next(i for i in range(offset - 1, -2, -1) if i < 0 or self.text[i] == ' ') + 1
-
-        def adjust_end(offset: int) -> int:
-            if offset == len(self.text) or self.text[offset] == ' ': return offset
-            if self.text[offset - 1] == ' ': return offset - 1
-            return next(i for i in range(offset + 1, len(self.text) + 1) if i == len(self.text) or self.text[i] == ' ')
-
-        # generate ID
-        cid = 'c{}'.format(self._concept_id)
-        self._concept_id += 1
-
-        # adjust offsets
-        if 0 <= begin < len(self.text) and 0 < end <= len(self.text):
-            begin, end = adjust_begin(begin), adjust_end(end)
+            # convert the set to an ordered list
+            self.covered_token_ids.update(token_ids)
+            token_ids = sorted(token_ids)
         else:
-            begin, end = -1, -1
+            token_ids = []
 
         # add concept
-        self.concepts[cid] = Concept(name, begin, end, attr)
+        cid = 'c{}'.format(self._concept_id)
+        self._concept_id += 1
+        self.concepts[cid] = Concept(name, token_ids, attribute)
         return cid
 
     def update_concept(self, concept_id: str, name: str) -> Optional[Concept]:
@@ -154,7 +213,7 @@ class Graph:
         if concept_id not in self.concepts: return None
 
         for rid, r in list(self.relations.items()):
-            if r.pid == concept_id or r.cid == concept_id:
+            if r.parent_id == concept_id or r.child_id == concept_id:
                 del self.relations[rid]
 
         return self.concepts.pop(concept_id)
@@ -172,7 +231,7 @@ class Graph:
         :return: list of (relation ID, Relation) with the specific parent.
         """
         if parent_id not in self.concepts: return []
-        return [(rid, r) for rid, r in self.relations.items() if r.pid == parent_id]
+        return [(rid, r) for rid, r in self.relations.items() if r.parent_id == parent_id]
 
     def parent_relations(self, child_id: str) -> List[Tuple[str, Relation]]:
         """
@@ -180,7 +239,7 @@ class Graph:
         :return: list of (relation ID, Relation) with the specific child.
         """
         if child_id not in self.concepts: return []
-        return [(rid, r) for rid, r in self.relations.items() if r.cid == child_id]
+        return [(rid, r) for rid, r in self.relations.items() if r.child_id == child_id]
 
     # TODO: check if the relation already exists
     def add_relation(self, parent_id: str, child_id: str, label: str, ref: bool = False) -> str:
@@ -227,7 +286,7 @@ class Graph:
         def repr_concept(cid: str, ref: bool) -> str:
             if ref: return cid
             c = self.concepts[cid]
-            if c.attr: return c.name
+            if c.attribute: return c.name
             return '({} / {}'.format(cid, c.name)
 
         # TODO: sort the relation labels per node
@@ -237,7 +296,7 @@ class Graph:
                 indent += ' ' * (len(cid) + 2)
                 for rid, relation in self.child_relations(cid):
                     r.append('\n{}:{} '.format(indent, relation.label))
-                    aux(relation.cid, relation.ref, r, indent + ' ' * (len(relation.label) + 2))
+                    aux(relation.child_id, relation.referent, r, indent + ' ' * (len(relation.label) + 2))
                 r.append(')')
 
         rep = []
@@ -254,6 +313,7 @@ class Graph:
         """
         :return: the JSON representation of this AMR object.
         """
+        self.covered_token_ids = list(self.covered_token_ids)
         return json.dumps(self, default=lambda x: x.__dict__, **kwargs)
 
     def clone(self) -> 'Graph':
@@ -277,7 +337,17 @@ class Graph:
                 v = {cid: Concept.factory(c) for cid, c in v.items()}
             elif k == 'relations':
                 v = {rid: Relation.factory(r) for rid, r in v.items()}
+            elif k == 'covered_token_ids':
+                v = set(v)
 
             graph.__dict__[k] = v
 
         return graph
+
+    def get_tokens(self, token_ids: Iterable[int]) -> List[str]:
+        """
+        :param token_ids: a iterable collection of token IDs.
+        :return: the ordered list of tokens from the IDs.
+        """
+        token_ids = sorted(token_ids)
+        return [self.tokens[i] for i in token_ids]

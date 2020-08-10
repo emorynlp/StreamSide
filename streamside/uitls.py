@@ -82,7 +82,30 @@ def propbank_frames_to_json(frame_dir: str, json_file: str, arg_file: str):
     return frames
 
 
+def create_concept_json():
+    resource_dir = 'resources/lexica'
+    cson = dict()
+
+    d = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
+    for k in d: cson[k.lower()] = 'Predicate'
+
+    for l in open(os.path.join(resource_dir, 'concept-date.txt')):
+        cson[l.strip().lower()] = 'Date entity'
+
+    for l in open(os.path.join(resource_dir, 'concept-name.txt')):
+        cson[l.strip().lower()] = 'Named entity'
+
+    for l in open(os.path.join(resource_dir, 'concept-quantity.txt')):
+        cson[l.strip().lower()] = 'Quantity entity'
+
+    for l in open(os.path.join(resource_dir, 'concept-misc.txt')):
+        cson[l.strip().lower()] = 'Miscellaneous entity'
+
+    json.dump(cson, open(os.path.join(resource_dir, 'concept-desc.json'), 'w'), indent=2)
+
+
 if __name__ == "__main__":
     # frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
-    propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/lexica/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
+    # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/lexica/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
+    # create_concept_json()
     pass

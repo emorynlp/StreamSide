@@ -17,62 +17,58 @@ __author__ = 'Jinho D. Choi'
 import json
 import unittest
 
-from streamside.struct import Graph
+from streamside.struct import Graph, OffsetMap, Offset
 
 
 class TestGraph(unittest.TestCase):
     # The boy want the girl not to believe him
     # 0123456789012345678901234567890123456789
     #           1         2         3
-    amr = Graph('The boy want the girl not to believe him')
+    text = 'The boy want the girl not to believe him'
+    amr = Graph(text)
 
     def test_add_concept(self):
+        offmap = OffsetMap(self.amr.tokens)
+
         # ' boy '
-        cid = self.amr.add_concept('boy', 3, 8)
+        cid = self.amr.add_concept('boy', offmap.token_ids(Offset(3, 8)))
         self.assertEqual('c0', cid)
         c = self.amr.get_concept(cid)
-        self.assertEqual(('boy', 4, 7), (c.name, c.begin, c.end))
+        self.assertEqual(('boy', [1]), (c.name, c.token_ids))
 
         # 'want'
-        cid = self.amr.add_concept('want-01', 8, 12)
+        cid = self.amr.add_concept('want', offmap.token_ids(Offset(8, 12)))
         self.assertEqual('c1', cid)
         c = self.amr.get_concept(cid)
-        self.assertEqual(('want-01', 8, 12), (c.name, c.begin, c.end))
+        self.assertEqual(('want', [2]), (c.name, c.token_ids))
 
         # `ir'
-        cid = self.amr.add_concept('girl', 18, 20)
+        cid = self.amr.add_concept('girl', offmap.token_ids(Offset(18, 20)))
         self.assertEqual('c2', cid)
         c = self.amr.get_concept(cid)
-        self.assertEqual(('girl', 17, 21), (c.name, c.begin, c.end))
+        self.assertEqual(('girl', [4]), (c.name, c.token_ids))
 
         # 'believe'
-        self.amr.add_concept('believe-01', 29, 36)
+        cid = self.amr.add_concept('believe', offmap.token_ids(Offset(29, 36)))
+        self.assertEqual('c3', cid)
+        c = self.amr.get_concept(cid)
+        self.assertEqual(('believe', [7]), (c.name, c.token_ids))
 
         # 'not'
-        cid = self.amr.add_concept('-', 22, 25, True)
+        cid = self.amr.add_concept('-', offmap.token_ids(Offset(22, 25)), True)
         c = self.amr.get_concept(cid)
-        self.assertEqual(('-', True), (c.name, c.attr))
+        self.assertEqual(('-', [5], True), (c.name, c.token_ids, c.attribute))
 
-        # Donald Trump is the president of the United States
-        # 01234567890123456789012345678901234567890123456789
-        amr = Graph('Donald Trump is the president of the United States')
-
-        # 'Donald T'
-        cid = amr.add_concept('Trump', 0, 8)
-        c = amr.get_concept(cid)
-        self.assertEqual(('Trump', 0, 12), (c.name, c.begin, c.end))
-
-        # 'ed States'
-        cid = amr.add_concept('Trump', 41, 50)
-        c = amr.get_concept(cid)
-        self.assertEqual(('Trump', 37, 50), (c.name, c.begin, c.end))
+        # 'want' again
+        cid = self.amr.add_concept('want', offmap.token_ids(Offset(8, 12)))
+        self.assertIsNone(cid)
 
     def test_add_relation(self):
         # ARG0(want, boy)
         rid = self.amr.add_relation('c1', 'c0', 'ARG0')
         self.assertEqual('r0', rid)
         r = self.amr.get_relation(rid)
-        self.assertEqual(('c1', 'c0', 'ARG0', False), (r.pid, r.cid, r.label, r.ref))
+        self.assertEqual(('c1', 'c0', 'ARG0', False), (r.parent_id, r.child_id, r.label, r.referent))
 
         # ARG1(want, believe)
         self.amr.add_relation('c1', 'c3', 'ARG1')
@@ -84,7 +80,7 @@ class TestGraph(unittest.TestCase):
         rid = self.amr.add_relation('c3', 'c0', 'ARG1', True)
         self.assertEqual('r3', rid)
         r = self.amr.get_relation(rid)
-        self.assertEqual(('c3', 'c0', 'ARG1', True), (r.pid, r.cid, r.label, r.ref))
+        self.assertEqual(('c3', 'c0', 'ARG1', True), (r.parent_id, r.child_id, r.label, r.referent))
 
         # polarity(believe, -)
         self.amr.add_relation('c3', 'c4', 'polarity')
@@ -106,7 +102,7 @@ class TestGraph(unittest.TestCase):
         s = self.amr.json_dumps()
         d = json.loads(s)
         amr = Graph.factory(d)
-        self.assertEqual(s, json.dumps(amr, default=lambda x: x.__dict__))
+        self.assertEqual(s, amr.json_dumps())
 
     def test_remove_concept(self):
         amr = self.amr.clone()
@@ -115,7 +111,7 @@ class TestGraph(unittest.TestCase):
         c3 = amr.remove_concept('c3')
         self.assertEqual(['c1', 'c2', 'c4'], amr.root_ids)
 
-        amr.add_concept(c3.name, c3.begin, c3.end)
+        amr.add_concept(c3.name, set())
         self.assertEqual(['c1', 'c2', 'c4', 'c5'], amr.root_ids)
 
     def test_remove_relation(self):
@@ -125,7 +121,7 @@ class TestGraph(unittest.TestCase):
         r1 = amr.remove_relation('r1')
         self.assertEqual(['c1', 'c3'], amr.root_ids)
 
-        amr.add_relation(r1.pid, r1.cid, r1.label, r1.ref)
+        amr.add_relation(r1.parent_id, r1.child_id, r1.label, r1.referent)
         self.assertEqual(s, '\n'.join(amr.penman_graphs()))
 
 

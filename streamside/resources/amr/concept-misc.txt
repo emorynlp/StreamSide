@@ -1,9 +1,0 @@
-amr-choice
-amr-unknown
-date-entity
-date-interval
-email-address-entity
-percentage-entity
-phone-number-entity
-relative-position
-url-entity
