@@ -1,0 +1,194 @@
+{
+  "ARG0": {
+    "description": "Central relation"
+  },
+  "ARG1": {
+    "description": "Central relation"
+  },
+  "ARG2": {
+    "description": "Central relation"
+  },
+  "accompanier": {
+    "description": "Peripheral relation"
+  },
+  "age": {
+    "description": "Peripheral relation"
+  },
+  "beneficiary": {
+    "description": "Peripheral relation"
+  },
+  "cause": {
+    "description": "Peripheral relation"
+  },
+  "companion": {
+    "description": "Peripheral relation"
+  },
+  "concession": {
+    "description": "Peripheral relation"
+  },
+  "condition": {
+    "description": "Peripheral relation"
+  },
+  "consist_of": {
+    "description": "Peripheral relation"
+  },
+  "degree": {
+    "description": "Peripheral relation"
+  },
+  "destination": {
+    "description": "Peripheral relation"
+  },
+  "direction": {
+    "description": "Peripheral relation"
+  },
+  "domain": {
+    "description": "Peripheral relation"
+  },
+  "duration": {
+    "description": "Peripheral relation"
+  },
+  "example": {
+    "description": "Peripheral relation"
+  },
+  "extent": {
+    "description": "Peripheral relation"
+  },
+  "frequency": {
+    "description": "Peripheral relation"
+  },
+  "goal": {
+    "description": "Peripheral relation"
+  },
+  "instrument": {
+    "description": "Peripheral relation"
+  },
+  "li": {
+    "description": "Peripheral relation"
+  },
+  "location": {
+    "description": "Peripheral relation"
+  },
+  "material": {
+    "description": "Peripheral relation"
+  },
+  "manner": {
+    "description": "Peripheral relation"
+  },
+  "medium": {
+    "description": "Peripheral relation"
+  },
+  "mod": {
+    "description": "Peripheral relation"
+  },
+  "mode": {
+    "description": "Peripheral relation"
+  },
+  "name": {
+    "description": "Peripheral relation"
+  },
+  "ord": {
+    "description": "Peripheral relation"
+  },
+  "part": {
+    "description": "Peripheral relation"
+  },
+  "path": {
+    "description": "Peripheral relation"
+  },
+  "place": {
+    "description": "Peripheral relation"
+  },
+  "polarity": {
+    "description": "Peripheral relation"
+  },
+  "polite": {
+    "description": "Peripheral relation"
+  },
+  "poss": {
+    "description": "Peripheral relation"
+  },
+  "product_of": {
+    "description": "Peripheral relation"
+  },
+  "purpose": {
+    "description": "Peripheral relation"
+  },
+  "quant": {
+    "description": "Peripheral relation"
+  },
+  "range": {
+    "description": "Peripheral relation"
+  },
+  "reason": {
+    "description": "Peripheral relation"
+  },
+  "scale": {
+    "description": "Peripheral relation"
+  },
+  "source": {
+    "description": "Peripheral relation"
+  },
+  "subevent": {
+    "description": "Peripheral relation"
+  },
+  "subset": {
+    "description": "Peripheral relation"
+  },
+  "sum_of": {
+    "description": "Peripheral relation"
+  },
+  "time": {
+    "description": "Peripheral relation"
+  },
+  "topic": {
+    "description": "Peripheral relation"
+  },
+  "unit": {
+    "description": "Peripheral relation"
+  },
+  "value": {
+    "description": "Peripheral relation"
+  },
+  "wiki": {
+    "description": "Peripheral relation"
+  },
+  "calendar": {
+    "description": "Date relation"
+  },
+  "century": {
+    "description": "Date relation"
+  },
+  "day": {
+    "description": "Date relation"
+  },
+  "dayperiod": {
+    "description": "Date relation"
+  },
+  "decade": {
+    "description": "Date relation"
+  },
+  "era": {
+    "description": "Date relation"
+  },
+  "month": {
+    "description": "Date relation"
+  },
+  "quarter": {
+    "description": "Date relation"
+  },
+  "season": {
+    "description": "Date relation"
+  },
+  "timezone": {
+    "description": "Date relation"
+  },
+  "weekday": {
+    "description": "Date relation"
+  },
+  "year": {
+    "description": "Date relation"
+  },
+  "year2": {
+    "description": "Date relation"
+  }
+}

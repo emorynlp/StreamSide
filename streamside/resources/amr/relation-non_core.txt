@@ -2,6 +2,7 @@ accompanier
 age
 beneficiary
 cause
+companion
 concession
 condition
 consist_of
@@ -13,9 +14,11 @@ duration
 example
 extent
 frequency
+goal
 instrument
 li
 location
+material
 manner
 medium
 mod
@@ -24,6 +27,7 @@ name
 ord
 part
 path
+place
 polarity
 polite
 poss
@@ -31,6 +35,7 @@ product_of
 purpose
 quant
 range
+reason
 scale
 source
 subevent

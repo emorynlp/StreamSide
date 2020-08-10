@@ -20,8 +20,9 @@ import os
 import re
 from typing import List, Dict, Optional, Tuple, Callable, Set
 
+from PyQt5 import QtGui
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence, QTextCursor
+from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
     QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar
 
@@ -53,7 +54,7 @@ class ConceptDialog(InputDialog):
         self.setMinimumWidth(350)
         layout = QGridLayout()
         self.setLayout(layout)
-        self.concept_desc = parent.concept_desc
+        self.concept_dict = parent.concept_dict
 
         # input
         completer = QCompleter(parent.concept_list)
@@ -83,8 +84,9 @@ class ConceptDialog(InputDialog):
         layout.addWidget(self.lb_desc, 3, 0, 1, 3)
 
     def button_describe(self):
-        args = self.frames.get(self.le_name.text().strip(), 'No description available')
-        self.lb_desc.setPlainText(args)
+        v = self.concept_dict.get(self.le_name.text().strip(), None)
+        text = v['description'] if v else 'No description available'
+        self.lb_desc.setPlainText(text)
         self.lb_desc.repaint()
 
     def exec_(self) -> Optional[str]:
@@ -157,8 +159,9 @@ class Annotator(QMainWindow):
         super().__init__()
 
         # resources
-        self.concept_desc: Dict[str, str] = dict()
+        self.concept_dict: Dict[str, str] = dict()
         self.concept_list: List[str] = []
+        self.relation_dict: Dict[str, str] = dict()
         self.relation_list: List[str] = []
         self.init_resources(resource_dir)
 
@@ -168,15 +171,15 @@ class Annotator(QMainWindow):
         self.tid: int = -1
         self.graphs: List[Graph] = []
         self.offset_maps: List[OffsetMap] = []
-        self.selected_parent: Optional[Tuple[Set[int], Offset]] = None
-        self.selected_child: Optional[Tuple[Set[int], Offset]] = None
+        self.selected_parent: Optional[Tuple[str, int]] = None
+        self.selected_child: Optional[Tuple[str, int]] = None
         self.selected_text_spans: Set[int] = set()
 
         # constants
         self.RE_CONCEPT_ID = re.compile(r'^c\d+$')
         self.COLOR_COVERED_TOKEN = 'lightgray'
         self.COLOR_SELECTED_PARENT = 'lightpink'
-        self.COLOR_SELECTED_CHILD = 'lightsteelblue'
+        self.COLOR_SELECTED_CHILD = 'lightgreen'
         self.COLOR_COVERED_TEXT_SPAN = 'khaki'
 
         # graphical user interface
@@ -202,10 +205,10 @@ class Annotator(QMainWindow):
 
     def init_resources(self, resource_dir: str):
         # concepts
-        self.concept_desc = json.load(open(os.path.join(resource_dir, 'concept-desc.json')))
-        self.concept_list = sorted(self.concept_desc.keys())
-
-        # TODO: initialize relations
+        self.concept_dict = json.load(open(os.path.join(resource_dir, 'concepts.json')))
+        self.concept_list = sorted(self.concept_dict.keys())
+        self.relation_dict = json.load(open(os.path.join(resource_dir, 'relations.json')))
+        self.relation_list = sorted(self.relation_dict.keys())
 
     def _init_central_widget(self, title: str, width: int, height: int) -> QGridLayout:
         widget = QWidget()
@@ -268,13 +271,13 @@ class Annotator(QMainWindow):
 
         # select
         menu = menubar.addMenu('&Select')
-        menu.addAction(action('Select Parent', '[', self.menu_select_parent))
-        menu.addAction(action('Select Child', "]", self.menu_select_child))
-        menu.addAction(action('Select Span', 'v', self.menu_select_span))
+        menu.addAction(action('Select Parent', 'w', self.menu_select_parent))
+        menu.addAction(action('Select Child', "e", self.menu_select_child))
+        menu.addAction(action('Select Span', 'x', self.menu_select_text_span))
         menu.addSeparator()
-        menu.addAction(action('Deselect Parent', 'Shift+[', self.menu_deselect_parent))
-        menu.addAction(action('Deselect Child', 'Shift+]', self.menu_deselect_child))
-        menu.addAction(action('Deselect Span', 'Shift+v', self.menu_deselect_span))
+        menu.addAction(action('Deselect Parent', 'Shift+w', self.menu_deselect_parent))
+        menu.addAction(action('Deselect Child', 'Shift+e', self.menu_deselect_child))
+        menu.addAction(action('Deselect Span', 'Shift+x', self.menu_deselect_text_span))
 
         # navigate
         menu = menubar.addMenu('Navigate')
@@ -333,17 +336,19 @@ class Annotator(QMainWindow):
     ####################  Menubar: Edit  ####################
 
     def menu_create_concept(self):
-        self.menu_select_span()
-        if not self.selected_text_spans: return
-
+        self.menu_select_text_span()
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
-        text = ' '.join(tokens).lower()
+        text = '_'.join(tokens).lower()
         name = ConceptDialog(self, text).exec_()
 
         if name:
-            graph.add_concept(name, self.selected_text_spans)
-            self.refresh_graph()
+            cid = graph.add_concept(name, self.selected_text_spans)
+            self.selected_text_spans.clear()
+            self.refresh_annotation()
+            self.statusbar.showMessage('Concept "{} / {}" is created for {}'.format(cid, name, str(tokens)))
+        else:
+            self.statusbar.showMessage('Concept creation is cancelled.')
 
     # TODO: non-recursive selection
     def menu_create_relation(self):
@@ -351,6 +356,7 @@ class Annotator(QMainWindow):
 
         cids = ['c0', 'c1', 'c2', 'c3']
         labels = ['ARG0', 'ARG1', 'ARG2', 'ARG3', 'ARG4']
+
 
         parent_id = c.selectedText()
         t = RelationDialog(self, parent_id, cids, labels).exec_()
@@ -369,36 +375,54 @@ class Annotator(QMainWindow):
 
     ####################  Menubar: Select  ####################
 
-    def menu_select_parent(self):
-        # TODO:
-        con = self.concept_selected_in_graph()
-        if con:
-            self.selected_parent = con
-            self.refresh_graph()
+    def menu_select_concept_in_graph(self, pctype):
+        selection = self.selected_concept_in_graph()
+        if selection is None:
+            self.statusbar.showMessage('No valid concept ID is highlighted')
+            return
 
-    def menu_deselect_parent(self):
-        # TODO:
-        self.selected_parent = None
-        self.refresh_graph()
+        cid = selection[0]
+        if self.selected_parent and cid == self.selected_parent[0]:
+            self.statusbar.showMessage('{} is already selected as a parent'.format(cid))
+            return
+
+        if self.selected_child and cid == self.selected_child[0]:
+            self.statusbar.showMessage('{} is already selected as a child'.format(cid))
+            return
+
+        if pctype == 'p':
+            self.selected_parent = selection
+            pc = 'parent'
+        else:
+            self.selected_child = selection
+            pc = 'child'
+
+        self.statusbar.showMessage('selected {}: {}'.format(pc, cid))
+        self.refresh_annotation()
+
+    def menu_select_parent(self):
+        self.menu_select_concept_in_graph('p')
 
     def menu_select_child(self):
-        # TODO:
-        con = self.concept_selected_in_graph()
-        if con:
-            self.selected_child = con
-            self.refresh_graph()
+        self.menu_select_concept_in_graph('c')
 
-    def menu_deselect_parent_child(self):
-        # TODO:
-        self.menu_deselect_parent()
-        self.menu_deselect_child()
+    def menu_deselect_parent(self):
+        if self.selected_parent:
+            self.statusbar.showMessage('Deselect parent: {}'.format(self.selected_parent[0]))
+            self.selected_parent = None
+            self.refresh_annotation()
+        else:
+            self.statusbar.showMessage('No parent is selected')
 
     def menu_deselect_child(self):
-        # TODO:
-        self.selected_child = None
-        self.refresh_graph()
+        if self.selected_child:
+            self.statusbar.showMessage('Deselect child: {}'.format(self.selected_child[0]))
+            self.selected_child = None
+            self.refresh_annotation()
+        else:
+            self.statusbar.showMessage('No child is selected')
 
-    def menu_select_span(self):
+    def menu_select_text_span(self):
         offset = self.selected_text_offset()
         if offset is None:
             self.statusbar.showMessage('No text span is highlighted')
@@ -415,7 +439,7 @@ class Annotator(QMainWindow):
         tokens = self.current_graph.get_tokens(token_ids)
         self.statusbar.showMessage('Select "{}"'.format(' '.join(tokens)))
 
-    def menu_deselect_span(self):
+    def menu_deselect_text_span(self):
         offset = self.selected_text_offset()
         if offset is None:
             self.statusbar.showMessage('No text span is highlighted')
@@ -454,11 +478,15 @@ class Annotator(QMainWindow):
             self.refresh_text()
             self.refresh_graph()
 
+    def refresh_annotation(self):
+        self.refresh_text()
+        self.refresh_graph()
+
     def refresh_text(self):
         def color(token_id: int):
-            if self.selected_parent and token_id in self.selected_parent[0]:
+            if token_id in selected_parent:
                 return self.COLOR_SELECTED_PARENT
-            if self.selected_child and token_id in self.selected_child[0]:
+            if token_id in selected_child:
                 return self.COLOR_SELECTED_CHILD
             if token_id in self.selected_text_spans:
                 return self.COLOR_COVERED_TEXT_SPAN
@@ -467,6 +495,8 @@ class Annotator(QMainWindow):
             return None
 
         graph = self.current_graph
+        selected_parent = set(graph.get_concept(self.selected_parent[0]).token_ids) if self.selected_parent else set()
+        selected_child = set(graph.get_concept(self.selected_child[0]).token_ids) if self.selected_child else set()
         tt = []
 
         for i, token in enumerate(graph.tokens):
@@ -487,24 +517,19 @@ class Annotator(QMainWindow):
 
         def set_color(c, color):
             if c is None: return
-            cursor = self.te_graph.textCursor()
-            cursor.setPosition(c.begin, QTextCursor.MoveAnchor)
-            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, len(c.name))
-            cursor.insertHtml('<span style="background-color:{};">{}</span>'.format(color, c.name))
+            cid, begin = c
+            cursor.setPosition(begin, QTextCursor.MoveAnchor)
+            cursor.movePosition(QTextCursor.Right, QTextCursor.KeepAnchor, len(cid))
+            cursor.insertHtml('<span style="background-color:{};">{}</span>'.format(color, cid))
+
+        cursor = self.te_graph.textCursor()
+        cursor.setCharFormat(QTextCharFormat())
+        cursor.clearSelection()
 
         self.te_graph.setText('\n'.join(graph.penman_graphs()))
         set_color(self.selected_parent, self.COLOR_SELECTED_PARENT)
         set_color(self.selected_child, self.COLOR_SELECTED_CHILD)
         self.te_graph.repaint()
-
-    def concept_selected_in_graph(self) -> Optional[Tuple[str, int, int]]:
-        cursor = self.te_graph.textCursor()
-        cid = cursor.selectedText()
-        if self.RE_CONCEPT_ID.match(cid):
-            begin = cursor.selectionStart()
-            end = begin + len(cid)
-            return cid, begin, end
-        return None
 
     def selected_text_offset(self) -> Optional[Offset]:
         """
@@ -514,6 +539,15 @@ class Annotator(QMainWindow):
         begin = self.lb_text.selectionStart()
         end = begin + len(text)
         return Offset(begin, end) if text else None
+
+    def selected_concept_in_graph(self) -> Optional[Tuple[str, int]]:
+        cursor = self.te_graph.textCursor()
+        cid = cursor.selectedText()
+        if self.RE_CONCEPT_ID.match(cid):
+            begin = cursor.selectionStart()
+            end = begin + len(cid)
+            return cid, begin
+        return None
 
 
 def message_box(text: str, icon: int, default_button: int = -1) -> int:

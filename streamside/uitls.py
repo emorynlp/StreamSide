@@ -104,8 +104,39 @@ def create_concept_json():
     json.dump(cson, open(os.path.join(resource_dir, 'concept-desc.json'), 'w'), indent=2)
 
 
+def map_concept():
+    resource_dir = 'resources/lexica'
+    pred = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
+    cson = json.load(open(os.path.join(resource_dir, 'concept-desc.json')))
+
+    for k, v in cson.items():
+        d = {'description': v}
+        e = pred.get(k, None)
+        if e: d['aliases'] = e['aliases']
+        cson[k] = d
+
+    json.dump(cson, open(os.path.join(resource_dir, 'concepts.json'), 'w'), indent=2)
+
+
+def create_relation_json():
+    resource_dir = 'resources/lexica'
+    cson = dict()
+
+    for l in open(os.path.join(resource_dir, 'relation-core.txt')):
+        cson[l.strip()] = {'description': 'Central relation'}
+
+    for l in open(os.path.join(resource_dir, 'relation-non_core.txt')):
+        cson[l.strip().lower()] = {'description': 'Peripheral relation'}
+
+    for l in open(os.path.join(resource_dir, 'relation-date.txt')):
+        cson[l.strip().lower()] = {'description': 'Date relation'}
+
+    json.dump(cson, open(os.path.join(resource_dir, 'relations.json'), 'w'), indent=2)
+
+
 if __name__ == "__main__":
     # frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
     # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/lexica/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
     # create_concept_json()
-    pass
+    # map_concept()
+    create_relation_json()
