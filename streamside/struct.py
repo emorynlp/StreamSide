@@ -216,7 +216,9 @@ class Graph:
             if r.parent_id == concept_id or r.child_id == concept_id:
                 del self.relations[rid]
 
-        return self.concepts.pop(concept_id)
+        con = self.concepts.pop(concept_id)
+        self.covered_token_ids -= set(con.token_ids)
+        return con
 
     def get_relation(self, relation_id: str) -> Optional[Relation]:
         """

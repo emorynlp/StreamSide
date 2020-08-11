@@ -23,7 +23,7 @@ from typing import List, Dict, Optional, Tuple, Callable, Set
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
-    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar
+    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar, QInputDialog
 
 from streamside.struct import Graph, OffsetMap, Offset
 
@@ -67,11 +67,11 @@ class ConceptDialog(InputDialog):
 
         # check attribute
         w = QWidget()
-        l = QHBoxLayout()
-        w.setLayout(l)
+        ck_layout = QHBoxLayout()
+        w.setLayout(ck_layout)
         self.attribute = QCheckBox()
-        l.addWidget(self.attribute)
-        l.addWidget(QLabel('Attribute'))
+        ck_layout.addWidget(self.attribute)
+        ck_layout.addWidget(QLabel('Attribute'))
         layout.addWidget(w, 1, 2)
 
         # buttons
@@ -129,17 +129,17 @@ class RelationDialog(InputDialog):
 
         # check referent/inverse
         w = QWidget()
-        l = QGridLayout()
-        l.setContentsMargins(0, 0, 0, 0)
-        w.setLayout(l)
+        ck_layout = QGridLayout()
+        ck_layout.setContentsMargins(0, 0, 0, 0)
+        w.setLayout(ck_layout)
 
         self.referent = QCheckBox()
-        l.addWidget(self.referent, 0, 0)
-        l.addWidget(QLabel('Referent'), 0, 1)
+        ck_layout.addWidget(self.referent, 0, 0)
+        ck_layout.addWidget(QLabel('Referent'), 0, 1)
 
         self.inverse = QCheckBox()
-        l.addWidget(self.inverse, 1, 0)
-        l.addWidget(QLabel('Inverse'), 1, 1)
+        ck_layout.addWidget(self.inverse, 1, 0)
+        ck_layout.addWidget(QLabel('Inverse'), 1, 1)
         layout.addWidget(w, 1, 2, 2, 1)
 
         # buttons
@@ -213,7 +213,7 @@ class Annotator(QMainWindow):
         self.COLOR_COVERED_TEXT_SPAN = 'khaki'
 
         # graphical user interface
-        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 600, 600)
+        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 600, 800)
         self.lb_tid = QLabel('Index:')
         self.lb_text = QLabel('Open a text or json file to start annotating')
         self.te_graph = QTextEdit()
@@ -255,12 +255,12 @@ class Annotator(QMainWindow):
         self.lb_text.setWordWrap(True)
 
         w = QWidget()
-        l = QHBoxLayout()
-        w.setLayout(l)
-        l.setContentsMargins(0, 0, 0, 0)
+        tb_layout = QHBoxLayout()
+        w.setLayout(tb_layout)
+        tb_layout.setContentsMargins(0, 0, 0, 0)
 
-        l.addWidget(self.lb_tid, 2)
-        l.addWidget(self.lb_text, 98)
+        tb_layout.addWidget(self.lb_tid, 2)
+        tb_layout.addWidget(self.lb_text, 98)
         layout.addWidget(w)
 
         # graph
@@ -294,8 +294,8 @@ class Annotator(QMainWindow):
         menu.addAction(action('Create Concept', 'C', self.menu_create_concept))
         menu.addAction(action('Create Relation', 'R', self.menu_create_relation))
         menu.addSeparator()
-        menu.addAction(action('Update', 'U', self.menu_update))
-        menu.addAction(action('Delete', 'D', self.menu_delete))
+        menu.addAction(action('Delete Concept', 'Ctrl+C', self.menu_delete_concept))
+        menu.addAction(action('Delete Relation', 'Ctrl+R', self.menu_delete_relation))
 
         # select
         menu = menubar.addMenu('&Select')
@@ -309,9 +309,12 @@ class Annotator(QMainWindow):
 
         # navigate
         menu = menubar.addMenu('Navigate')
-        menu.addAction(action('Previous', 'Ctrl+,', self.menu_navigate_previous))
-        menu.addAction(action('Next', 'Ctrl+.', self.menu_navigate_next))
-        menu.addAction(action('Jump to', 'Ctrl+/', self.menu_navigate_goto))
+        menu.addAction(action('Previous', ',', self.menu_navigate_previous))
+        menu.addAction(action('Next', '.', self.menu_navigate_next))
+        menu.addSeparator()
+        menu.addAction(action('Jump to First', 'Ctrl+,', self.menu_navigate_jump_first))
+        menu.addAction(action('Jump to Last', 'Ctrl+.', self.menu_navigate_jump_last))
+        menu.addAction(action('Jump to ...', 'Ctrl+/', self.menu_navigate_jump))
 
     ####################  Menubar: File  ####################
 
@@ -415,10 +418,18 @@ class Annotator(QMainWindow):
         else:
             self.statusbar.showMessage('Relation creation is cancelled.')
 
-    def menu_update(self):
-        print('Update')
+    def menu_delete_concept(self):
+        selection = self.selected_concept_in_graph()
+        if selection is None:
+            self.statusbar.showMessage('No valid concept ID is highlighted')
+            return
 
-    def menu_delete(self):
+        cid = selection[0]
+        self.current_graph.remove_concept(cid)
+        self.statusbar.showMessage('Delete concept: {}'.format(cid))
+        self.refresh_annotation()
+
+    def menu_delete_relation(self):
         print('Delete')
 
     ####################  Menubar: Select  ####################
@@ -504,16 +515,43 @@ class Annotator(QMainWindow):
 
     def menu_navigate_previous(self):
         self.menu_file_save()
-        self.select_annotation(self.tid - 1)
+        tid = self.tid - 1
+
+        if 0 <= tid:
+            self.select_annotation(tid)
+            self.statusbar.showMessage('Navigate: {}'.format(tid))
+        else:
+            self.statusbar.showMessage('Already at the first text.')
 
     def menu_navigate_next(self):
         self.menu_file_save()
-        self.select_annotation(self.tid + 1)
+        tid = self.tid + 1
 
-    def menu_navigate_goto(self):
+        if tid < len(self.graphs):
+            self.select_annotation(tid)
+            self.statusbar.showMessage('Navigate: {}'.format(tid))
+        else:
+            self.statusbar.showMessage('Already at the last text.')
+
+    def menu_navigate_jump_first(self):
         self.menu_file_save()
-        print('Jump to')
-        # TODO: init
+        self.select_annotation(0)
+        self.statusbar.showMessage('Navigate: {}'.format(0))
+
+    def menu_navigate_jump_last(self):
+        self.menu_file_save()
+        tid = len(self.graphs) - 1
+        self.select_annotation(tid)
+        self.statusbar.showMessage('Navigate: {}'.format(tid))
+
+    def menu_navigate_jump(self):
+        self.menu_file_save()
+        max = len(self.graphs) - 1
+
+        tid, ok = QInputDialog.getInt(self, 'Jump to', 'Select between 0 and {}'.format(max), value=self.tid, min=0, max=max)
+        if ok:
+            self.select_annotation(tid)
+            self.statusbar.showMessage('Navigate: {}'.format(tid))
 
     ########################################  Text & Graph  ########################################
 
