@@ -18,25 +18,37 @@ import argparse
 import json
 import os
 import re
-from typing import List, Dict, Optional, Tuple, Callable, Set
+from typing import List, Dict, Optional, Tuple, Callable, Set, Union
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
-    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar, QInputDialog
+    QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar, QInputDialog, QVBoxLayout
 
 from streamside.struct import Graph, OffsetMap, Offset
 
 
 class InputDialog(QDialog):
-    def __init__(self, parent):
+    def __init__(self, parent, title: str, width: int, completer_list: List[str], completer_max: int):
         super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumWidth(width)
+
+        # completer
+        completer = QCompleter(completer_list)
+        completer.setMaxVisibleItems(completer_max)
+        self.ledit = QLineEdit()
+        self.ledit.setCompleter(completer)
+        self.ledit.editingFinished.connect(self.edit_finished)
 
         self.ok = False
         self.btn_ok = QPushButton("OK", self)
         self.btn_ok.clicked.connect(self.button_ok)
         self.btn_cancel = QPushButton("Cancel", self)
         self.btn_cancel.clicked.connect(self.button_cancel)
+
+    def edit_finished(self):
+        pass
 
     def button_ok(self):
         self.ok = self.sender() == self.btn_ok
@@ -47,123 +59,116 @@ class InputDialog(QDialog):
 
 
 class ConceptDialog(InputDialog):
-    def __init__(self, parent, name: str):
-        super().__init__(parent)
-        self.setWindowTitle('Create a concept')
-        self.setMinimumWidth(350)
-        layout = QGridLayout()
-        self.setLayout(layout)
+    def __init__(self, parent, title: str, concept_name: str, update: bool = False):
+        super().__init__(parent, title, 350, parent.concept_list, 50)
         self.concept_dict = parent.concept_dict
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
-        # input name
-        completer = QCompleter(parent.concept_list)
-        completer.setMaxVisibleItems(50)
-        self.le_name = QLineEdit()
-        self.le_name.setText(name)
-        self.le_name.setCompleter(completer)
+        # components
+        self.ledit.setText(concept_name)
+        self.ck_attr = QCheckBox()
+        self.lb_desc = QPlainTextEdit('Description')
+        self.lb_desc.setReadOnly(True)
 
-        layout.addWidget(QLabel('Enter the concept name:'), 0, 0, 1, 3)
-        layout.addWidget(self.le_name, 1, 0, 1, 2)
-
-        # check attribute
-        w = QWidget()
-        ck_layout = QHBoxLayout()
-        w.setLayout(ck_layout)
-        self.attribute = QCheckBox()
-        ck_layout.addWidget(self.attribute)
-        ck_layout.addWidget(QLabel('Attribute'))
-        layout.addWidget(w, 1, 2)
+        wg_concept = QWidget()
+        l = QHBoxLayout()
+        l.setContentsMargins(0, 0, 0, 0)
+        wg_concept.setLayout(l)
+        l.addWidget(self.ledit)
+        if not update:
+            l.addWidget(self.ck_attr)
+            l.addWidget(QLabel('Attribute'))
 
         # buttons
-        self.btn_describe = QPushButton("Describe", self)
-        self.btn_describe.clicked.connect(self.button_describe)
-        layout.addWidget(self.btn_ok, 2, 0)
-        layout.addWidget(self.btn_describe, 2, 1)
-        layout.addWidget(self.btn_cancel, 2, 2)
+        wg_button = QWidget()
+        l = QHBoxLayout()
+        l.setContentsMargins(50, 0, 50, 0)
+        wg_button.setLayout(l)
+        l.addWidget(self.btn_ok)
+        l.addWidget(self.btn_cancel)
+
+        # layout
+        layout.addWidget(QLabel('Enter the concept name:'))
+        layout.addWidget(wg_concept)
+        layout.addWidget(self.lb_desc)
+        layout.addWidget(wg_button)
 
         # shortcut
-        self.sct_describe = QShortcut(QKeySequence('Ctrl+D'), self)
-        self.sct_describe.activated.connect(self.button_describe)
-
         self.sct_attribute = QShortcut(QKeySequence('Ctrl+R'), self)
         self.sct_attribute.activated.connect(self.check_attribute)
 
-        # description
-        self.lb_desc = QPlainTextEdit('Description')
-        self.lb_desc.setReadOnly(True)
-        layout.addWidget(self.lb_desc, 3, 0, 1, 3)
-
-    def button_describe(self):
-        v = self.concept_dict.get(self.le_name.text().strip(), None)
+    def edit_finished(self):
+        v = self.concept_dict.get(self.ledit.text().strip(), None)
         text = v['description'] if v else 'No description available'
         self.lb_desc.setPlainText(text)
         self.lb_desc.repaint()
 
     def check_attribute(self):
-        self.attribute.setChecked(not self.attribute.isChecked())
+        self.ck_attr.setChecked(not self.ck_attr.isChecked())
 
     def exec_(self) -> Optional[Tuple[str, bool]]:
         super().exec_()
-        return (self.le_name.text().strip(), self.attribute.isChecked()) if self.ok else None
+        return (self.ledit.text().strip(), self.ck_attr.isChecked()) if self.ok else None
 
 
 class RelationDialog(InputDialog):
-    def __init__(self, parent, parent_desc: str, child_desc: str):
-        super().__init__(parent)
-        self.setWindowTitle('Create a relation')
-        self.setMinimumWidth(350)
-        layout = QGridLayout()
-        self.setLayout(layout)
+    def __init__(self, parent, title: str, parent_desc: str, child_desc: str, label: str = '', update: bool = False):
+        super().__init__(parent, title, 350, parent.relation_list, 50)
         self.relation_dict = parent.relation_dict
+        layout = QVBoxLayout()
+        self.setLayout(layout)
 
-        # parent/child descriptions
-        layout.addWidget(QLabel('Parent: {}'.format(parent_desc)), 0, 0, 1, 3)
-        layout.addWidget(QLabel('Child: {}'.format(child_desc)), 1, 0, 1, 2)
-
-        # input role
-        completer = QCompleter(parent.relation_list)
-        completer.setMaxVisibleItems(50)
-        self.le_role = QLineEdit()
-        self.le_role.setCompleter(completer)
-        layout.addWidget(self.le_role, 2, 0, 1, 2)
-
-        # check referent/inverse
-        w = QWidget()
-        ck_layout = QGridLayout()
-        ck_layout.setContentsMargins(0, 0, 0, 0)
-        w.setLayout(ck_layout)
-
+        # components
+        self.ledit.setText(label)
         self.referent = QCheckBox()
-        ck_layout.addWidget(self.referent, 0, 0)
-        ck_layout.addWidget(QLabel('Referent'), 0, 1)
-
         self.inverse = QCheckBox()
-        ck_layout.addWidget(self.inverse, 1, 0)
-        ck_layout.addWidget(QLabel('Inverse'), 1, 1)
-        layout.addWidget(w, 1, 2, 2, 1)
+        self.lb_desc = QPlainTextEdit('Description')
+        self.lb_desc.setReadOnly(True)
+
+        # child + referent
+        wg_child = QWidget()
+        l = QHBoxLayout()
+        l.setContentsMargins(0, 0, 0, 0)
+        wg_child.setLayout(l)
+        l.addWidget(QLabel('Child: {}'.format(child_desc)), 80)
+        if not update:
+            l.addWidget(self.referent)
+            l.addWidget(QLabel('Referent'))
+
+        # ledit + inverse
+        wg_ledit = QWidget()
+        l = QHBoxLayout()
+        l.setContentsMargins(0, 0, 0, 0)
+        wg_ledit.setLayout(l)
+        l.addWidget(self.ledit)
+        if not update:
+            l.addWidget(self.inverse)
+            l.addWidget(QLabel('-of'))
 
         # buttons
-        self.btn_describe = QPushButton("Describe", self)
-        self.btn_describe.clicked.connect(self.button_describe)
-        layout.addWidget(self.btn_ok, 3, 0)
-        layout.addWidget(self.btn_describe, 3, 1)
-        layout.addWidget(self.btn_cancel, 3, 2)
+        wg_button = QWidget()
+        l = QHBoxLayout()
+        l.setContentsMargins(50, 0, 50, 0)
+        wg_button.setLayout(l)
+        l.addWidget(self.btn_ok)
+        l.addWidget(self.btn_cancel)
 
-        # shortcut
-        self.sct_describe = QShortcut(QKeySequence('Ctrl+D'), self)
-        self.sct_describe.activated.connect(self.button_describe)
+        # layout
+        layout.addWidget(QLabel('Parent: {}'.format(parent_desc)))
+        layout.addWidget(wg_child)
+        layout.addWidget(wg_ledit)
+        layout.addWidget(self.lb_desc)
+        layout.addWidget(wg_button)
+
+        # shortcuts
         self.sct_referent = QShortcut(QKeySequence('Ctrl+R'), self)
         self.sct_referent.activated.connect(self.check_referent)
         self.sct_inverse = QShortcut(QKeySequence('Ctrl+F'), self)
         self.sct_inverse.activated.connect(self.check_inverse)
 
-        # description
-        self.lb_desc = QPlainTextEdit('Description')
-        self.lb_desc.setReadOnly(True)
-        layout.addWidget(self.lb_desc, 4, 0, 1, 3)
-
-    def button_describe(self):
-        v = self.relation_dict.get(self.le_role.text().strip(), None)
+    def edit_finished(self):
+        v = self.relation_dict.get(self.ledit.text().strip(), None)
         text = v['description'] if v else 'No description available'
         self.lb_desc.setPlainText(text)
         self.lb_desc.repaint()
@@ -177,7 +182,7 @@ class RelationDialog(InputDialog):
     def exec_(self) -> Optional[Tuple[str, bool]]:
         super().exec_()
         if self.ok:
-            label = self.le_role.text().strip()
+            label = self.ledit.text().strip()
             if self.inverse.isChecked(): label += '-of'
             return label, self.referent.isChecked()
         else:
@@ -187,6 +192,15 @@ class RelationDialog(InputDialog):
 class Annotator(QMainWindow):
     def __init__(self, resource_dir: str, annotator: str = 'unknown'):
         super().__init__()
+
+        # constants
+        self.VERSION = '0.1'
+        self.RE_CONCEPT_ID = re.compile(r'(c\d+)')
+        self.RE_CONCEPT_ID_PAREN = re.compile(r'(?:^| )\((c\d+) /')
+        self.COLOR_COVERED_TOKEN = 'lightgray'
+        self.COLOR_SELECTED_PARENT = 'lightpink'
+        self.COLOR_SELECTED_CHILD = 'lightgreen'
+        self.COLOR_COVERED_TEXT_SPAN = 'khaki'
 
         # resources
         self.concept_dict: Dict[str, str] = dict()
@@ -204,13 +218,6 @@ class Annotator(QMainWindow):
         self.selected_parent: Optional[Tuple[str, int]] = None
         self.selected_child: Optional[Tuple[str, int]] = None
         self.selected_text_spans: Set[int] = set()
-
-        # constants
-        self.RE_CONCEPT_ID = re.compile(r'^c\d+$')
-        self.COLOR_COVERED_TOKEN = 'lightgray'
-        self.COLOR_SELECTED_PARENT = 'lightpink'
-        self.COLOR_SELECTED_CHILD = 'lightgreen'
-        self.COLOR_COVERED_TEXT_SPAN = 'khaki'
 
         # graphical user interface
         layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 600, 800)
@@ -287,6 +294,7 @@ class Annotator(QMainWindow):
         menu.addAction(action('Open', 'Ctrl+O', self.menu_file_open))
         menu.addAction(action('Save', 'Ctrl+S', self.menu_file_save))
         menu.addSeparator()
+        menu.addAction(action('About', 'Ctrl+I', self.menu_file_about))
         menu.addAction(action('Quit', 'Ctrl+Q', qApp.quit))
 
         # edit
@@ -294,8 +302,8 @@ class Annotator(QMainWindow):
         menu.addAction(action('Create Concept', 'C', self.menu_create_concept))
         menu.addAction(action('Create Relation', 'R', self.menu_create_relation))
         menu.addSeparator()
-        menu.addAction(action('Delete Concept', 'Ctrl+C', self.menu_delete_concept))
-        menu.addAction(action('Delete Relation', 'Ctrl+R', self.menu_delete_relation))
+        menu.addAction(action('Delete', 'Ctrl+D', self.menu_delete))
+        menu.addAction(action('Update', 'Ctrl+F', self.menu_update))
 
         # select
         menu = menubar.addMenu('&Select')
@@ -365,10 +373,22 @@ class Annotator(QMainWindow):
             return
 
         with open(self.filename, 'w') as fout:
-            d = ['  '+graph.json_dumps() for graph in self.graphs]
+            d = ['  ' + graph.json_dumps() for graph in self.graphs]
             fout.write('[\n{}\n]\n'.format(',\n'.join(d)))
 
         self.statusbar.showMessage('Save: {}'.format(self.filename))
+
+    def menu_file_about(self):
+        msg = QMessageBox()
+        text = 'StreamSide v{} developed by Emory NLP\nhttps://github.com/emorynlp/StreamSide\nContact: jinho.choi@emory.edu'.format(self.VERSION)
+        msg.setText(text)
+        msg.setIcon(QMessageBox.Information)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec_()
+
+    def menu_file_quit(self):
+        self.menu_file_save()
+        qApp.quit()
 
     ####################  Menubar: Edit  ####################
 
@@ -377,7 +397,7 @@ class Annotator(QMainWindow):
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
         text = '_'.join(tokens).lower()
-        t = ConceptDialog(self, text).exec_()
+        t = ConceptDialog(self, 'Create a concept', text).exec_()
 
         if t:
             name = t[0]
@@ -406,7 +426,7 @@ class Annotator(QMainWindow):
         parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
         child_desc = '({} / {})'.format(child_id, child_concept.name)
 
-        t = RelationDialog(self, parent_desc, child_desc).exec_()
+        t = RelationDialog(self, 'Create a relation', parent_desc, child_desc).exec_()
         if t:
             label = t[0]
             referent = t[1]
@@ -429,16 +449,98 @@ class Annotator(QMainWindow):
         self.statusbar.showMessage('Delete concept: {}'.format(cid))
         self.refresh_annotation()
 
-    def menu_delete_relation(self):
-        cursor = self.te_graph.textCursor()
-        sel = cursor.selectedText()
-        if self.RE_CONCEPT_ID.match(sel):
-            if self.current_graph.remove_concept(sel):
+    def menu_delete(self):
+        sel = self.find_concept_or_relation()
+        if sel is None:
+            self.statusbar.showMessage('No valid concept or relation is highlighted.')
+            return
+
+        graph = self.current_graph
+        deleted = False
+
+        if type(sel) is str:
+            if graph.remove_concept(sel):
+                deleted = True
                 self.statusbar.showMessage('Delete concept: {}'.format(sel))
         else:
-            pass
+            label, parent_id, child_id = sel[0], sel[1], sel[2]
+            for rid, r in graph.parent_relations(child_id):
+                if r.label == label and r.parent_id == parent_id:
+                    graph.remove_relation(rid)
+                    deleted = True
+                    self.statusbar.showMessage('Delete relation: {}({}, {})'.format(label, parent_id, child_id))
+                    break
 
-        self.refresh_annotation()
+        if deleted:
+            self.refresh_annotation()
+        else:
+            self.statusbar.showMessage('No valid concept or relation is highlighted.')
+
+    def menu_update(self):
+        sel = self.find_concept_or_relation()
+        if sel is None:
+            self.statusbar.showMessage('No valid concept or relation is highlighted.')
+            return
+
+        graph = self.current_graph
+        updated = False
+
+        if type(sel) is str:
+            c = graph.get_concept(sel)
+            if c:
+                t = ConceptDialog(self, 'Update the concept', c.name, True).exec_()
+                if t:
+                    c.name = t[0]
+                    updated = True
+                    self.statusbar.showMessage('Update concept: {}'.format(sel))
+        else:
+            label, parent_id, child_id = sel[0], sel[1], sel[2]
+            for rid, r in graph.parent_relations(child_id):
+                if r.label == label and r.parent_id == parent_id:
+                    parent_concept = graph.get_concept(parent_id)
+                    child_concept = graph.get_concept(child_id)
+                    parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
+                    child_desc = '({} / {})'.format(child_id, child_concept.name)
+                    t = RelationDialog(self, 'Update the relation', parent_desc, child_desc, label, True).exec_()
+                    if t:
+                        r.label = t[0]
+                        self.statusbar.showMessage('Update relation: {}({}, {})'.format(label, parent_id, child_id))
+                        updated = True
+                    break
+
+        if updated:
+            self.refresh_annotation()
+        else:
+            self.statusbar.showMessage('No valid concept or relation is highlighted.')
+
+    def find_concept_or_relation(self) -> Optional[Union[str, Tuple[str, str, str]]]:
+        cursor = self.te_graph.textCursor()
+        sel = cursor.selectedText()
+        if not sel:
+            self.statusbar.showMessage('No concept or relation is highlighted')
+            return None
+
+        if self.RE_CONCEPT_ID.match(sel):
+            return sel
+        else:
+            text = self.te_graph.toPlainText()
+            begin = cursor.selectionStart()
+
+            # get parent ID
+            parent_id = None
+            ls = text[:begin].split('\n')
+            indent = ls[-1]
+            for line in reversed(ls[:-1]):
+                if line[:len(indent)] != indent:
+                    m = self.RE_CONCEPT_ID_PAREN.search(line)
+                    if m: parent_id = m.group(1)
+                    break
+
+            m = self.RE_CONCEPT_ID.search(text[begin + len(sel):])
+            child_id = m.group(1) if m else None
+            if parent_id and child_id: return sel, parent_id, child_id
+
+        return None
 
     ####################  Menubar: Select  ####################
 

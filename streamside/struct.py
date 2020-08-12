@@ -296,7 +296,7 @@ class Graph:
             r.append(repr_concept(cid, ref))
             if not ref:
                 indent += ' ' * (len(cid) + 2)
-                for rid, relation in self.child_relations(cid):
+                for rid, relation in sorted(self.child_relations(cid), key=lambda x: x[1].label):
                     r.append('\n{}:{} '.format(indent, relation.label))
                     aux(relation.child_id, relation.referent, r, indent + ' ' * (len(relation.label) + 2))
                 r.append(')')
