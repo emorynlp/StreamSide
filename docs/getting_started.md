@@ -31,7 +31,7 @@ Under the virtual environment, install StreamSide:
 (venv) $ pip install streamside
 ```
 
-Launch the [Graph Annotator](graph_annotator.md) using the following command where `AID` is the ID of the annotator:
+Launch the [Graph Annotator](graph_annotator.md) using the following command (replace `AID` with your ID):
 
 ```bash
 (venv) $ python -m streamside.annotator -a AID &
