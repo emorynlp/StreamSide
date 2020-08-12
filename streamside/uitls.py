@@ -83,7 +83,7 @@ def propbank_frames_to_json(frame_dir: str, json_file: str, arg_file: str):
 
 
 def create_concept_json():
-    resource_dir = 'resources/lexica'
+    resource_dir = 'resources/wisen'
     cson = dict()
 
     d = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
@@ -105,7 +105,7 @@ def create_concept_json():
 
 
 def map_concept():
-    resource_dir = 'resources/lexica'
+    resource_dir = 'resources/wisen'
     pred = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
     cson = json.load(open(os.path.join(resource_dir, 'concept-desc.json')))
 
@@ -119,7 +119,7 @@ def map_concept():
 
 
 def create_relation_json():
-    resource_dir = 'resources/lexica'
+    resource_dir = 'resources/wisen'
     cson = dict()
 
     for l in open(os.path.join(resource_dir, 'relation-core.txt')):
@@ -134,9 +134,99 @@ def create_relation_json():
     json.dump(cson, open(os.path.join(resource_dir, 'relations.json'), 'w'), indent=2)
 
 
+def add_field_to_concept(concept_file):
+    ds = json.load(open(concept_file))
+
+    for k, v in ds.items():
+        desc = v['description']
+        if desc.startswith('Predicate'):
+            vtype = 'pred'
+        elif desc.startswith('Named'):
+            vtype = 'name'
+        elif desc.startswith('Quant'):
+            vtype = 'quant'
+        elif desc.startswith('Date'):
+            vtype = 'date'
+        elif desc.startswith('Misc'):
+            vtype = 'misc'
+        elif desc.startswith('Attribute'):
+            vtype = 'attr'
+        else:
+            print(desc)
+
+        v['type'] = vtype
+
+    json.dump(ds, open(concept_file + '.json', 'w'), indent=2)
+
+
+def amr_concept_json():
+    cson = dict()
+
+    d = json.load(open('resources/amr/frames-arg_descriptions.json'))
+    for k, v in d.items():
+        cson[k] = dict(description='\n'.join(['{}: {}'.format(a, b) for a, b in sorted(v.items())]), type='pred')
+
+    for line in open('resources/amr/concept-name.txt'):
+        cson[line.strip()] = dict(description='Named entity', type='name')
+
+    for line in open('resources/amr/concept-quantity.txt'):
+        cson[line.strip()] = dict(description='Quantity entity', type='quant')
+
+    for line in open('resources/amr/concept-date.txt'):
+        cson[line.strip()] = dict(description='Date entity', type='date')
+
+    for line in open('resources/amr/concept-misc.txt'):
+        cson[line.strip()] = dict(description='Miscellaneous entity', type='misc')
+
+    for line in open('resources/amr/attributes.txt'):
+        cson[line.strip()] = dict(description='Attribute', type='attr')
+
+    json.dump(cson, open('resources/amr/concepts.json', 'w'), indent=2)
+
+
+def add_field_to_relation(relation_file):
+    ds = json.load(open(relation_file))
+
+    for k, v in ds.items():
+        desc = v['description']
+        if desc.startswith('Central'):
+            vtype = 'core'
+        elif desc.startswith('Peripheral'):
+            vtype = 'non_core'
+        elif desc.startswith('Date'):
+            vtype = 'date'
+        else:
+            print(desc)
+
+        v['type'] = vtype
+
+    json.dump(ds, open(relation_file + '.json', 'w'), indent=2)
+
+
+def amr_concept_json():
+    cson = dict()
+
+    for line in open('resources/amr/relation-core.txt'):
+        cson[line.strip()] = dict(description='Central relation', type='core')
+
+    for line in open('resources/amr/relation-non_core.txt'):
+        cson[line.strip()] = dict(description='Peripheral relation', type='oblique')
+
+    for line in open('resources/amr/relation-date.txt'):
+        cson[line.strip()] = dict(description='Date relation', type='date')
+
+    json.dump(cson, open('resources/amr/relations.json', 'w'), indent=2)
+
+
+
 if __name__ == "__main__":
     # frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
-    # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/lexica/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
+    # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/wisen/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
     # create_concept_json()
     # map_concept()
-    create_relation_json()
+    # create_relation_json()
+    # add_field_to_concept('resources/wisen/concepts.json')
+    # amr_concept_json()
+    # add_field_to_relation('resources/wisen/relations.json')
+    # amr_concept_json()
+    pass

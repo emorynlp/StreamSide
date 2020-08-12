@@ -365,7 +365,7 @@ class Annotator(QMainWindow):
             return
 
         with open(self.filename, 'w') as fout:
-            d = [graph.json_dumps() for graph in self.graphs]
+            d = ['  '+graph.json_dumps() for graph in self.graphs]
             fout.write('[\n{}\n]\n'.format(',\n'.join(d)))
 
         self.statusbar.showMessage('Save: {}'.format(self.filename))
@@ -430,7 +430,15 @@ class Annotator(QMainWindow):
         self.refresh_annotation()
 
     def menu_delete_relation(self):
-        print('Delete')
+        cursor = self.te_graph.textCursor()
+        sel = cursor.selectedText()
+        if self.RE_CONCEPT_ID.match(sel):
+            if self.current_graph.remove_concept(sel):
+                self.statusbar.showMessage('Delete concept: {}'.format(sel))
+        else:
+            pass
+
+        self.refresh_annotation()
 
     ####################  Menubar: Select  ####################
 
@@ -657,7 +665,7 @@ def message_box(text: str, icon: int, default_button: int = -1) -> int:
 def main():
     parser = argparse.ArgumentParser(description='StreamSide WiSeN Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-r', '--resources', type=str, default='resources/lexica', help='path to the directory containing resource files')
+    parser.add_argument('-r', '--resources', type=str, default='resources/wisen', help='path to the directory containing resource files')
     args = parser.parse_args()
 
     app = QApplication([])

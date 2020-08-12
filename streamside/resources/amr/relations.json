@@ -1,0 +1,250 @@
+{
+  "ARG0": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG1": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG2": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG3": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG4": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG5": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "accompanier": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "age": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "beneficiary": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "cause": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "concession": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "condition": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "consist-of": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "degree": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "destination": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "direction": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "domain": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "duration": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "example": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "extent": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "frequency": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "instrument": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "li": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "location": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "manner": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "medium": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "mod": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "mode": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "name": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "ord": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "part": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "path": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "polarity": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "polite": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "poss": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "product-of": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "purpose": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "quant": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "range": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "scale": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "source": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "subevent": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "subset": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "sum_of": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "time": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "topic": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "unit": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "value": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "wiki": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
+  "calendar": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "century": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "day": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "dayperiod": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "decade": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "era": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "month": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "quarter": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "season": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "timezone": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "weekday": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year2": {
+    "description": "Date relation",
+    "type": "date"
+  }
+}

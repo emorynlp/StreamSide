@@ -1,0 +1,262 @@
+{
+  "ARG0": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG1": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "ARG2": {
+    "description": "Central relation",
+    "type": "core"
+  },
+  "accompanier": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "age": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "beneficiary": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "cause": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "companion": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "concession": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "condition": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "consist_of": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "degree": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "destination": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "direction": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "domain": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "duration": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "example": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "extent": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "frequency": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "goal": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "instrument": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "li": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "location": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "material": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "manner": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "medium": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "mod": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "mode": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "name": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "ord": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "part": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "path": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "place": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "polarity": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "polite": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "poss": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "product_of": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "purpose": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "quant": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "range": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "reason": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "scale": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "source": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "subevent": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "subset": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "sum_of": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "time": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "topic": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "unit": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "value": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "wiki": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "op": {
+    "description": "Peripheral relation",
+    "type": "non_core"
+  },
+  "calendar": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "century": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "day": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "dayperiod": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "decade": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "era": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "month": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "quarter": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "season": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "timezone": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "weekday": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year2": {
+    "description": "Date relation",
+    "type": "date"
+  }
+}
