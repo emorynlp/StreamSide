@@ -21,7 +21,7 @@ import re
 from typing import List, Dict, Optional, Tuple, Callable, Set, Union
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat
+from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat, QFont
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
     QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar, QInputDialog, QVBoxLayout
 
@@ -59,7 +59,7 @@ class InputDialog(QDialog):
 
 
 class ConceptDialog(InputDialog):
-    def __init__(self, parent, title: str, concept_name: str, update: bool = False):
+    def __init__(self, parent, title: str, concept_name: str):
         super().__init__(parent, title, 350, parent.concept_list, 50)
         self.concept_dict = parent.concept_dict
         layout = QVBoxLayout()
@@ -67,7 +67,6 @@ class ConceptDialog(InputDialog):
 
         # components
         self.ledit.setText(concept_name)
-        self.ck_attr = QCheckBox()
         self.lb_desc = QPlainTextEdit('Description')
         self.lb_desc.setReadOnly(True)
 
@@ -76,9 +75,10 @@ class ConceptDialog(InputDialog):
         l.setContentsMargins(0, 0, 0, 0)
         wg_concept.setLayout(l)
         l.addWidget(self.ledit)
-        if not update:
-            l.addWidget(self.ck_attr)
-            l.addWidget(QLabel('Attribute'))
+
+        # self.ck_attr = QCheckBox()
+        # l.addWidget(self.ck_attr)
+        # l.addWidget(QLabel('Attribute'))
 
         # buttons
         wg_button = QWidget()
@@ -107,9 +107,9 @@ class ConceptDialog(InputDialog):
     def check_attribute(self):
         self.ck_attr.setChecked(not self.ck_attr.isChecked())
 
-    def exec_(self) -> Optional[Tuple[str, bool]]:
+    def exec_(self) -> Optional[str]:
         super().exec_()
-        return (self.ledit.text().strip(), self.ck_attr.isChecked()) if self.ok else None
+        return self.ledit.text().strip() if self.ok else None
 
 
 class RelationDialog(InputDialog):
@@ -194,9 +194,13 @@ class Annotator(QMainWindow):
         super().__init__()
 
         # constants
+        font = QFont()
+        font.setFamily('Courier New')
+
         self.VERSION = '0.1'
-        self.RE_CONCEPT_ID = re.compile(r'(c\d+)')
-        self.RE_CONCEPT_ID_PAREN = re.compile(r'(?:^| )\((c\d+) /')
+        self.RE_CONCEPT_ID = re.compile(r'([ca]\d+)')
+        self.RE_CONCEPT_ID_PAREN = re.compile(r'(?:^| )\(([ca]\d+) /')
+        self.FONT_GRAPH = font
         self.COLOR_COVERED_TOKEN = 'lightgray'
         self.COLOR_SELECTED_PARENT = 'lightpink'
         self.COLOR_SELECTED_CHILD = 'lightgreen'
@@ -220,7 +224,7 @@ class Annotator(QMainWindow):
         self.selected_text_spans: Set[int] = set()
 
         # graphical user interface
-        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 600, 800)
+        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 800, 800)
         self.lb_tid = QLabel('Index:')
         self.lb_text = QLabel('Open a text or json file to start annotating')
         self.te_graph = QTextEdit()
@@ -291,19 +295,20 @@ class Annotator(QMainWindow):
 
         # file
         menu = menubar.addMenu('File')
-        menu.addAction(action('Open', 'Ctrl+O', self.menu_file_open))
-        menu.addAction(action('Save', 'Ctrl+S', self.menu_file_save))
+        menu.addAction(action('Open', 'Ctrl+o', self.menu_file_open))
+        menu.addAction(action('Save', 'Ctrl+s', self.menu_file_save))
         menu.addSeparator()
-        menu.addAction(action('About', 'Ctrl+I', self.menu_file_about))
-        menu.addAction(action('Quit', 'Ctrl+Q', qApp.quit))
+        menu.addAction(action('About', 'Ctrl+i', self.menu_file_about))
+        menu.addAction(action('Quit', 'Ctrl+q', qApp.quit))
 
         # edit
         menu = menubar.addMenu('Edit')
-        menu.addAction(action('Create Concept', 'C', self.menu_create_concept))
-        menu.addAction(action('Create Relation', 'R', self.menu_create_relation))
+        menu.addAction(action('Create Concept', 'c', self.menu_create_concept))
+        menu.addAction(action('Create Concept', 'a', self.menu_create_attribute))
+        menu.addAction(action('Create Relation', 'r', self.menu_create_relation))
         menu.addSeparator()
-        menu.addAction(action('Delete', 'Ctrl+D', self.menu_delete))
-        menu.addAction(action('Update', 'Ctrl+F', self.menu_update))
+        menu.addAction(action('Delete', 'Ctrl+d', self.menu_delete))
+        menu.addAction(action('Update', 'Ctrl+f', self.menu_update))
 
         # select
         menu = menubar.addMenu('&Select')
@@ -386,28 +391,33 @@ class Annotator(QMainWindow):
         msg.setStandardButtons(QMessageBox.Ok)
         msg.exec_()
 
-    def menu_file_quit(self):
+    def closeEvent(self, event):
         self.menu_file_save()
-        qApp.quit()
+        event.accept()
 
     ####################  Menubar: Edit  ####################
 
-    def menu_create_concept(self):
+    def _menu_create_concept(self, attribute: bool):
         self.menu_select_text_span()
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
         text = '_'.join(tokens).lower()
-        t = ConceptDialog(self, 'Create a concept', text).exec_()
+        name = ConceptDialog(self, 'Create a concept', text).exec_()
+        ctype = 'Attribute' if attribute else 'Concept'
 
-        if t:
-            name = t[0]
-            attr = t[1]
-            cid = graph.add_concept(name, self.selected_text_spans, attr)
+        if name:
+            cid = graph.add_concept(name, self.selected_text_spans, attribute)
             self.selected_text_spans.clear()
             self.refresh_annotation()
-            self.statusbar.showMessage('Concept created: ({} / {}) - {}'.format(cid, name, str(tokens)))
+            self.statusbar.showMessage('{} created: ({} / {}) - {}'.format(ctype, cid, name, str(tokens)))
         else:
-            self.statusbar.showMessage('Concept creation is cancelled.')
+            self.statusbar.showMessage('{} creation is cancelled.'.format(ctype))
+
+    def menu_create_concept(self):
+        self._menu_create_concept(False)
+
+    def menu_create_attribute(self):
+        self._menu_create_concept(True)
 
     def menu_create_relation(self):
         if self.selected_parent is None:
@@ -438,17 +448,6 @@ class Annotator(QMainWindow):
         else:
             self.statusbar.showMessage('Relation creation is cancelled.')
 
-    def menu_delete_concept(self):
-        selection = self.selected_concept_in_graph()
-        if selection is None:
-            self.statusbar.showMessage('No valid concept ID is highlighted')
-            return
-
-        cid = selection[0]
-        self.current_graph.remove_concept(cid)
-        self.statusbar.showMessage('Delete concept: {}'.format(cid))
-        self.refresh_annotation()
-
     def menu_delete(self):
         sel = self.find_concept_or_relation()
         if sel is None:
@@ -472,6 +471,8 @@ class Annotator(QMainWindow):
                     break
 
         if deleted:
+            self.selected_parent = None
+            self.selected_child = None
             self.refresh_annotation()
         else:
             self.statusbar.showMessage('No valid concept or relation is highlighted.')
@@ -488,9 +489,9 @@ class Annotator(QMainWindow):
         if type(sel) is str:
             c = graph.get_concept(sel)
             if c:
-                t = ConceptDialog(self, 'Update the concept', c.name, True).exec_()
-                if t:
-                    c.name = t[0]
+                name = ConceptDialog(self, 'Update the concept', c.name).exec_()
+                if name:
+                    c.name = name
                     updated = True
                     self.statusbar.showMessage('Update concept: {}'.format(sel))
         else:
@@ -501,14 +502,16 @@ class Annotator(QMainWindow):
                     child_concept = graph.get_concept(child_id)
                     parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
                     child_desc = '({} / {})'.format(child_id, child_concept.name)
-                    t = RelationDialog(self, 'Update the relation', parent_desc, child_desc, label, True).exec_()
-                    if t:
-                        r.label = t[0]
+                    name = RelationDialog(self, 'Update the relation', parent_desc, child_desc, label, True).exec_()
+                    if name:
+                        r.label = name[0]
                         self.statusbar.showMessage('Update relation: {}({}, {})'.format(label, parent_id, child_id))
                         updated = True
                     break
 
         if updated:
+            self.selected_parent = None
+            self.selected_child = None
             self.refresh_annotation()
         else:
             self.statusbar.showMessage('No valid concept or relation is highlighted.')
@@ -529,9 +532,10 @@ class Annotator(QMainWindow):
             # get parent ID
             parent_id = None
             ls = text[:begin].split('\n')
-            indent = ls[-1]
+            indent = len(ls[-1]) - 1
             for line in reversed(ls[:-1]):
-                if line[:len(indent)] != indent:
+                idx = len(line) - len(line.lstrip())
+                if idx < indent:
                     m = self.RE_CONCEPT_ID_PAREN.search(line)
                     if m: parent_id = m.group(1)
                     break
@@ -735,6 +739,7 @@ class Annotator(QMainWindow):
 
         set_color(self.selected_parent, self.COLOR_SELECTED_PARENT)
         set_color(self.selected_child, self.COLOR_SELECTED_CHILD)
+        self.te_graph.setFont(self.FONT_GRAPH)
         self.te_graph.repaint()
 
     def selected_text_offset(self) -> Optional[Offset]:

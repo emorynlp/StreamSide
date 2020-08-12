@@ -136,7 +136,7 @@ class Graph:
         """
         This class consists of a text, an AMR graph for the text, and related meta data.
         :param text: the raw text.
-        :param tid: the text ID.
+        :param tid: the text Iadd_conD.
         :param annotator: the annotator ID.
         """
         # meta
@@ -159,7 +159,7 @@ class Graph:
         :return: list of root concept IDs sorted by begin offsets in ascending order.
         """
         cids = [cid for cid in self.concepts if not self.parent_relations(cid)]
-        cids.sort()
+        cids.sort(key=lambda x: int(x[1:]))
         return cids
 
     def get_concept(self, concept_id: str) -> Optional[Concept]:
@@ -188,7 +188,7 @@ class Graph:
             token_ids = []
 
         # add concept
-        cid = 'c{}'.format(self._concept_id)
+        cid = '{}{}'.format('a' if attribute else 'c', self._concept_id)
         self._concept_id += 1
         self.concepts[cid] = Concept(name, token_ids, attribute)
         return cid
@@ -288,18 +288,19 @@ class Graph:
         def repr_concept(cid: str, ref: bool) -> str:
             if ref: return cid
             c = self.concepts[cid]
-            if c.attribute and self.parent_relations(cid): return c.name
+            # if c.attribute and self.parent_relations(cid): return c.name
             return '({} / {}'.format(cid, c.name)
 
         # TODO: sort the relation labels per node
         def aux(cid: str, ref: bool, r: List[str], indent: str):
-            r.append(repr_concept(cid, ref))
+            cname = repr_concept(cid, ref)
+            r.append(cname)
             if not ref:
                 indent += ' ' * (len(cid) + 2)
                 for rid, relation in sorted(self.child_relations(cid), key=lambda x: x[1].label):
                     r.append('\n{}:{} '.format(indent, relation.label))
                     aux(relation.child_id, relation.referent, r, indent + ' ' * (len(relation.label) + 2))
-                r.append(')')
+                if cname.startswith('('): r.append(')')
 
         rep = []
         aux(concept_id, False, rep, '')
