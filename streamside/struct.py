@@ -16,6 +16,7 @@ __author__ = 'Jinho D. Choi'
 
 import copy
 import json
+from datetime import datetime
 from typing import Tuple, Optional, List, Dict, Set, Iterable
 
 
@@ -141,6 +142,7 @@ class Graph:
         """
         # meta
         self.tid = tid
+        self.last_saved = ''
         self.annotator = annotator
         self.tokens = text.split()
 
@@ -279,16 +281,18 @@ class Graph:
         """
         return self.relations.pop(relation_id) if relation_id in self.relations else None
 
-    def penman(self, concept_id: str) -> str:
+    def penman(self, concept_id: str, amr: bool = False) -> str:
         """
         :param concept_id: the ID of the root concept.
+        :param amr: if True, the return notation is compatible to AMR.
         :return: the Penman notation of the concept's subtree.
         """
 
         def repr_concept(cid: str, ref: bool) -> str:
             if ref: return cid
             c = self.concepts[cid]
-            # if c.attribute and self.parent_relations(cid): return c.name
+            if amr:
+                if c.attribute and self.parent_relations(cid): return c.name
             return '({} / {}'.format(cid, c.name)
 
         # TODO: sort the relation labels per node

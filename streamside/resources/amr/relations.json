@@ -195,6 +195,10 @@
     "description": "Peripheral relation",
     "type": "oblique"
   },
+  "op": {
+    "description": "Peripheral relation",
+    "type": "oblique"
+  },
   "calendar": {
     "description": "Date relation",
     "type": "date"

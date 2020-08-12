@@ -14,6 +14,15 @@
 
 __author__ = 'Jinho D. Choi'
 
+from datetime import datetime
+
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    import importlib_resources as pkg_resources
+
+from streamside.resources import wisen, amr
+
 import argparse
 import json
 import os
@@ -189,8 +198,8 @@ class RelationDialog(InputDialog):
             return None
 
 
-class Annotator(QMainWindow):
-    def __init__(self, resource_dir: str, annotator: str = 'unknown'):
+class GraphAnnotator(QMainWindow):
+    def __init__(self, resource_dir: str, mode: str, annotator: str = 'unknown'):
         super().__init__()
 
         # constants
@@ -211,9 +220,10 @@ class Annotator(QMainWindow):
         self.concept_list: List[str] = []
         self.relation_dict: Dict[str, str] = dict()
         self.relation_list: List[str] = []
-        self.init_resources(resource_dir)
+        self.init_resources(resource_dir, mode)
 
         # fields
+        self.mode = mode
         self.annotator: str = annotator
         self.filename: str = ''
         self.tid: int = -1
@@ -224,7 +234,7 @@ class Annotator(QMainWindow):
         self.selected_text_spans: Set[int] = set()
 
         # graphical user interface
-        layout = self._init_central_widget('StreamSide WISeN Annotator: {}'.format(annotator), 800, 800)
+        layout = self._init_central_widget('StreamSide Graph Annotator: {}'.format(annotator), 800, 800)
         self.lb_tid = QLabel('Index:')
         self.lb_text = QLabel('Open a text or json file to start annotating')
         self.te_graph = QTextEdit()
@@ -244,11 +254,19 @@ class Annotator(QMainWindow):
 
     ########################################  Init  ########################################
 
-    def init_resources(self, resource_dir: str):
+    def init_resources(self, resource_dir: str, mode: str):
+        if resource_dir:
+            f_concepts = open(os.path.join(resource_dir, 'concepts.json'))
+            f_relations = open(os.path.join(resource_dir, 'relations.json'))
+        else:
+            m = wisen if mode == 'wisen' else amr
+            f_concepts = pkg_resources.open_text(m, 'concepts.json')
+            f_relations = pkg_resources.open_text(m, 'relations.json')
+
         # concepts
-        self.concept_dict = json.load(open(os.path.join(resource_dir, 'concepts.json')))
+        self.concept_dict = json.load(f_concepts)
         self.concept_list = sorted(self.concept_dict.keys())
-        self.relation_dict = json.load(open(os.path.join(resource_dir, 'relations.json')))
+        self.relation_dict = json.load(f_relations)
         self.relation_list = sorted(self.relation_dict.keys())
 
     def _init_central_widget(self, title: str, width: int, height: int) -> QGridLayout:
@@ -377,6 +395,7 @@ class Annotator(QMainWindow):
             self.statusbar.showMessage('Output file is not specified.')
             return
 
+        self.current_graph.last_saved = current_time()
         with open(self.filename, 'w') as fout:
             d = ['  ' + graph.json_dumps() for graph in self.graphs]
             fout.write('[\n{}\n]\n'.format(',\n'.join(d)))
@@ -401,7 +420,7 @@ class Annotator(QMainWindow):
         self.menu_select_text_span()
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
-        text = '_'.join(tokens).lower()
+        text = ' '.join(tokens) if attribute else '_'.join(tokens).lower()
         name = ConceptDialog(self, 'Create a concept', text).exec_()
         ctype = 'Attribute' if attribute else 'Concept'
 
@@ -769,14 +788,20 @@ def message_box(text: str, icon: int, default_button: int = -1) -> int:
     return msg.exec_()
 
 
+def current_time():
+    now = datetime.now()
+    return now.strftime("%d/%m/%Y %H:%M:%S")
+
+
 def main():
     parser = argparse.ArgumentParser(description='StreamSide WiSeN Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-r', '--resources', type=str, default='resources/wisen', help='path to the directory containing resource files')
+    parser.add_argument('-m', '--mode', type=str, default='wisen', help='wisen|amr')
+    parser.add_argument('-r', '--resources', type=str, default='', help='path to the directory containing resource files')
     args = parser.parse_args()
 
     app = QApplication([])
-    gui = Annotator(args.resources, args.annotator)
+    gui = GraphAnnotator(args.resources, args.mode, args.annotator)
     gui.show()
     app.exec_()
 

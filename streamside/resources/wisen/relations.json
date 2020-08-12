@@ -13,199 +13,199 @@
   },
   "accompanier": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "age": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "beneficiary": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "cause": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "companion": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "concession": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "condition": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "consist_of": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "degree": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "destination": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "direction": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "domain": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "duration": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "example": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "extent": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "frequency": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "goal": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "instrument": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "li": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "location": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "material": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "manner": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "medium": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "mod": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "mode": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "name": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "ord": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "part": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "path": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "place": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "polarity": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "polite": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "poss": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "product_of": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "purpose": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "quant": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "range": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "reason": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "scale": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "source": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "subevent": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "subset": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "sum_of": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "time": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "topic": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "unit": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "value": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "wiki": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "op": {
     "description": "Peripheral relation",
-    "type": "non_core"
+    "type": "oblique"
   },
   "calendar": {
     "description": "Date relation",

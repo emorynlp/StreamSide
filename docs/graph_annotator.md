@@ -1,19 +1,33 @@
-# Tutorials
+# Graph Annotator
 
-> If you are using a mac, use the `Cmd` key instead of the `Ctrl` key.
+## Launch
 
-## Open File
+The following describes the command to launch the graph annotator:
+
+```bash
+python -m streamside.annotator -a ANNOTATOR_ID [-m wisen|amr -r RESOURCE_DIR] &
+```
+* `-a` or `--annotator`: the ID of the annotator (required).
+* `-m` or `--mode`: choose the representation `wisen` (default) or `amr`.
+* `-r` or `--resources`: the path to a custom resource directory; if not specified, it uses the default [resources](../streamside/resources/).
+
+
+## Annotate
+
+> If you are using a mac, replace the `Ctrl` key with the `Cmd` key .
+
+### Open File
 
 Press `Ctrl+o` to prompt a file dialog:
 
-* For the initial annotation, choose a text file that consists of a sentence per line.
-* For a returning annotation, choose a JSON file that is previously saved.
+* For the initial annotation, choose a text file comprising a sentence per line (e.g., [training-examples.txt](training-examples.txt)).
+* For a returning annotation, choose a JSON file that is previously saved (e.g., [training-examples.jdchoi.json](training-examples.jdchoi.json)).
 
-## Save File
+### Save File
 
-Press `Ctrl+s` to save the current annotation to the JSON file whose name indicates the annotator ID.
+Press `Ctrl+s` to save the current annotation to the JSON file whose name includes the annotator ID.
 
-## Create Concept
+### Create Concept
 
 Any of the following actions will prompt the input dialog to create a concept:
 
@@ -32,13 +46,15 @@ To deselect spans:
 Once the input dialog is prompted:
 
 * Type the concept name; predefined concepts will be auto-completed by the input textbox.
-* To see the description of a predefined concept, press `Ctrl+d` or the `Describe` button.
-* To make this concept as an attribute, press `Ctrl+r` or check the `Attribute` box.
 * Press `Enter` or the `OK` button to create the concept.
 
 Once the concept is created, its spans are displayed in <span style="background-color:lightgray;">gray</span> on the text.
 
-## Create Relation
+### Create Attribute
+
+Attribute can be created in the exact same way as the concept by pressing `a` instead of `c`.
+
+### Create Relation
 
 The following actions will prompt the input dialog to create a relation:
 
@@ -56,12 +72,32 @@ To deselect the IDs:
 Once the input dialog is prompted:
 
 * Type the relation label; predefined labels will be auto-completed by the input textbox.
-* To see the description of a predefined concept, press `Ctrl+d` or the `Describe` button.
 * To make the child concept as a referent argument, press `Ctrl+r` or check the `Referent` box.
 * To make an inverse relation (`*-of`), press `Ctrl+f` or check the `Inverse` box.
 * Press `Enter` or the `OK` button to create the concept.
 
-## Navigate
+### Delete
+
+To delete a concept or an attribute:
+
+* Highlight the ID of the concept/attribute and press `Ctrl+d`.
+
+To delete a relation:
+
+* Highlight the label of the relation and press `Ctrl+d`.
+
+### Update
+
+To update the name of a concept or an attribute:
+
+* Highlight the ID of the concept/attribute and press `Ctrl+f`.
+
+To update the label of a relation:
+
+* Highlight the label of the relation and press `Ctrl+f`.
+
+
+### Navigate
 
 * To move to the previous sentence, press `,`.
 * To move to the next sentence, press `.`.
