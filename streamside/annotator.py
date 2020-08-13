@@ -123,7 +123,7 @@ class ConceptDialog(InputDialog):
 
 class RelationDialog(InputDialog):
     def __init__(self, parent, title: str, parent_desc: str, child_desc: str, label: str = '', update: bool = False):
-        super().__init__(parent, title, 350, parent.relation_list, 50)
+        super().__init__(parent, title, 550, parent.relation_list, 50)
         self.relation_dict = parent.relation_dict
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -134,6 +134,16 @@ class RelationDialog(InputDialog):
         self.inverse = QCheckBox()
         self.lb_desc = QPlainTextEdit('Description')
         self.lb_desc.setReadOnly(True)
+
+        # AMR only
+        self.concept_desc = None
+        if parent.mode == 'amr':
+            parent_id = parent_desc.split()[0][1:]
+            con = parent.current_graph.get_concept(parent_id)
+            d = parent.concept_dict.get(con.name, None)
+            if d and d['type'] == 'pred':
+                self.concept_desc = d['description']
+                self.lb_desc.setPlainText(self.concept_desc)
 
         # child + referent
         wg_child = QWidget()
@@ -177,10 +187,11 @@ class RelationDialog(InputDialog):
         self.sct_inverse.activated.connect(self.check_inverse)
 
     def edit_finished(self):
-        v = self.relation_dict.get(self.ledit.text().strip(), None)
-        text = v['description'] if v else 'No description available'
-        self.lb_desc.setPlainText(text)
-        self.lb_desc.repaint()
+        if self.concept_desc is None:
+            v = self.relation_dict.get(self.ledit.text().strip(), None)
+            text = v['description'] if v else 'No description available'
+            self.lb_desc.setPlainText(text)
+            self.lb_desc.repaint()
 
     def check_referent(self):
         self.referent.setChecked(not self.referent.isChecked())
@@ -367,8 +378,8 @@ class GraphAnnotator(QMainWindow):
         def open_json(json_file):
             self.filename = json_file
             with open(self.filename) as fin:
-                graphs = json.load(fin)
-                self.graphs = [Graph.factory(graph) for graph in graphs]
+                d = json.load(fin)
+                self.graphs = [Graph.factory(graph) for graph in d['graphs']]
 
         # get filename
         filename = QFileDialog.getOpenFileName(self, 'Open File')[0]
@@ -397,8 +408,8 @@ class GraphAnnotator(QMainWindow):
 
         self.current_graph.last_saved = current_time()
         with open(self.filename, 'w') as fout:
-            d = ['  ' + graph.json_dumps() for graph in self.graphs]
-            fout.write('[\n{}\n]\n'.format(',\n'.join(d)))
+            d = ['    ' + graph.json_dumps() for graph in self.graphs]
+            fout.write('{{\n  "graphs": [\n{}\n  ]\n}}\n'.format(',\n'.join(d)))
 
         self.statusbar.showMessage('Save: {}'.format(self.filename))
 

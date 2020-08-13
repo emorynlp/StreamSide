@@ -35467,6 +35467,10 @@
     "description": "Quantity entity",
     "type": "quant"
   },
+  "name": {
+    "description": "Miscellaneous entity",
+    "type": "misc"
+  },
   "date-entity": {
     "description": "Miscellaneous entity",
     "type": "misc"

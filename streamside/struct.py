@@ -16,7 +16,6 @@ __author__ = 'Jinho D. Choi'
 
 import copy
 import json
-from datetime import datetime
 from typing import Tuple, Optional, List, Dict, Set, Iterable
 
 
@@ -281,40 +280,48 @@ class Graph:
         """
         return self.relations.pop(relation_id) if relation_id in self.relations else None
 
-    def penman(self, concept_id: str, amr: bool = False) -> str:
+    def penman(self, concept_id: str, amr: bool) -> str:
         """
         :param concept_id: the ID of the root concept.
         :param amr: if True, the return notation is compatible to AMR.
         :return: the Penman notation of the concept's subtree.
         """
 
-        def repr_concept(cid: str, ref: bool) -> str:
-            if ref: return cid
-            c = self.concepts[cid]
-            if amr:
-                if c.attribute and self.parent_relations(cid): return c.name
-            return '({} / {}'.format(cid, c.name)
+        def repr_concept(rel: Relation) -> str:
+            if rel.referent: return rel.child_id
+            c = self.concepts[rel.child_id]
+            if amr and c.attribute and self.parent_relations(rel.child_id):
+                if (rel.label.startswith('op') and rel.label[2:].isdigit() and self.concepts[rel.parent_id].name == 'name') or rel.label == 'wiki' or rel.label == 'value':
+                    return '"{}"'.format(c.name)
+                else:
+                    return c.name
+            return '({} / {}'.format(rel.child_id, c.name)
 
         # TODO: sort the relation labels per node
-        def aux(cid: str, ref: bool, r: List[str], indent: str):
-            cname = repr_concept(cid, ref)
+        def aux(rel: Relation, r: List[str], indent: str):
+            cname = repr_concept(rel)
             r.append(cname)
-            if not ref:
-                indent += ' ' * (len(cid) + 2)
-                for rid, relation in sorted(self.child_relations(cid), key=lambda x: x[1].label):
+            if not rel.referent:
+                indent += ' ' * (len(rel.child_id) + 2)
+                for rid, relation in sorted(self.child_relations(rel.child_id), key=lambda x: x[1].label):
                     r.append('\n{}:{} '.format(indent, relation.label))
-                    aux(relation.child_id, relation.referent, r, indent + ' ' * (len(relation.label) + 2))
+                    aux(relation, r, indent + ' ' * (len(relation.label) + 2))
                 if cname.startswith('('): r.append(')')
 
         rep = []
-        aux(concept_id, False, rep, '')
-        return ''.join(rep)
+        aux(Relation('', concept_id, ''), rep, '')
+        if amr:
+            meta = '# ::id {} ::save-date {} ::annotator {}\n# ::snt {}\n'.format(self.tid, self.last_saved, self.annotator, ' '.join(self.tokens))
+            return meta + ''.join(rep)
+        else:
+            return ''.join(rep)
 
-    def penman_graphs(self) -> List[str]:
+    def penman_graphs(self, amr: bool = False) -> List[str]:
         """
+        :param amr: if True, the return notation is compatible to AMR.
         :return: list of graphs in the Penman notation.
         """
-        return [self.penman(root_id) for root_id in self.root_ids]
+        return [self.penman(root_id, amr) for root_id in self.root_ids]
 
     def json_dumps(self, **kwargs) -> str:
         """
