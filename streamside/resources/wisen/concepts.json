@@ -50998,6 +50998,18 @@
     ],
     "type": "pred"
   },
+  "wisen-unknown": {
+    "description": "Predicate",
+    "aliases:: [
+    ],
+    "type": "pred"
+  },
+  "wisen-question": {
+    "description": "Predicate",
+    "aliases:: [
+    ],
+    "type": "pred"
+  },
   "wish": {
     "description": "Predicate",
     "aliases": [
