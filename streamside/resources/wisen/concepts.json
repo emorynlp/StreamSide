@@ -51000,13 +51000,13 @@
   },
   "wisen-unknown": {
     "description": "Predicate",
-    "aliases:: [
+    "aliases: [
     ],
     "type": "pred"
   },
   "wisen-question": {
     "description": "Predicate",
-    "aliases:: [
+    "aliases: [
     ],
     "type": "pred"
   },
