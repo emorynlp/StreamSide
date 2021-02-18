@@ -1,90 +1,230 @@
 {
-  "ARG0": {
-    "description": "Central relation",
-    "type": "core"
-  },
-  "ARG1": {
-    "description": "Central relation",
-    "type": "core"
-  },
   "accompanier": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
-  "beneficiary": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+  "actor": {
+    "description": "",
+    "type": ""
+  },
+  "age": {
+    "description": "",
+    "type": ""
+  },
+  "asset": {
+    "description": "",
+    "type": ""
+  },
+  "attribute": {
+    "description": "",
+    "type": ""
+  },
+  "benefactive": {
+    "description": "",
+    "type": ""
   },
   "cause": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
+  },
+  "comparison": {
+    "description": "",
+    "type": ""
+  },
+  "condition": {
+    "description": "",
+    "type": ""
+  },
+  "concession": {
+    "description": "",
+    "type": ""
+  },
+  "consist-of": {
+    "description": "",
+    "type": ""
   },
   "degree": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
-  "destination": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+  "direction": {
+    "description": "",
+    "type": ""
+  },
+  "domain": {
+    "description": "",
+    "type": ""
   },
   "duration": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
+  },
+  "end": {
+    "description": "",
+    "type": ""
+  },
+  "example": {
+    "description": "",
+    "type": ""
+  },
+  "extent": {
+    "description": "",
+    "type": ""
   },
   "frequency": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "implication": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
   "instrument": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
+  },
+  "list": {
+    "description": "",
+    "type": ""
   },
   "location": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
+  },
+  "manner": {
+    "description": "",
+    "type": ""
   },
   "mod": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
   "mode": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
-  "polarity": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "poss": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-   "prep": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "purpose": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "quantity": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "size": {
-    "description": "Peripheral relation",
-    "type": "oblique"
-  },
-  "temporal": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+  "name": {
+    "description": "",
+    "type": ""
   },
   "op": {
-    "description": "Peripheral relation",
-    "type": "oblique"
+    "description": "",
+    "type": ""
   },
+  "ord": {
+    "description": "",
+    "type": ""
+  },
+  "part-of": {
+    "description": "",
+    "type": ""
+  },
+  "path": {
+    "description": "",
+    "type": ""
+  },
+  "polarity": {
+    "description": "",
+    "type": ""
+  },
+  "polite": {
+    "description": "",
+    "type": ""
+  },
+  "poss": {
+    "description": "",
+    "type": ""
+  },
+  "purpose": {
+    "description": "",
+    "type": ""
+  },
+  "quant": {
+    "description": "",
+    "type": ""
+  },
+  "range": {
+    "description": "",
+    "type": ""
+  },
+  "start": {
+    "description": "",
+    "type": ""
+  },
+  "subevent": {
+    "description": "",
+    "type": ""
+  },
+  "theme": {
+    "description": "",
+    "type": ""
+  },
+  "time": {
+    "description": "",
+    "type": ""
+  },
+  "topic": {
+    "description": "",
+    "type": ""
+  },
+  "unit": {
+    "description": "",
+    "type": ""
+  },
+  "value": {
+    "description": "",
+    "type": ""
+  },
+  "calendar": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "century": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "day": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "dayperiod": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "decade": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "era": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "month": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "quarter": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "season": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "timezone": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "weekday": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "year2": {
+    "description": "Date relation",
+    "type": "date"
+  },
+  "unidentified": {
+    "description": "Annotator uncertain",
+    "type": ""
+  } 
 }

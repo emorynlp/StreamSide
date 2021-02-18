@@ -250,5 +250,9 @@
   "year2": {
     "description": "Date relation",
     "type": "date"
-  }
+  },
+  "unidentified": {
+    "description": "Annotator uncertain",
+    "type": ""
+  } 
 }
