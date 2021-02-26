@@ -291,10 +291,10 @@ class Graph:
             if rel.referent: return rel.child_id
             c = self.concepts[rel.child_id]
             if amr and c.attribute and self.parent_relations(rel.child_id):
-                if (rel.label.startswith('op') and rel.label[2:].isdigit() and self.concepts[rel.parent_id].name == 'name') or rel.label == 'wiki' or rel.label == 'value':
-                    return '"{}"'.format(c.name)
-                else:
-                    return c.name
+                #if (rel.label.startswith('op') and rel.label[2:].isdigit() and self.concepts[rel.parent_id].name == 'name') or rel.label == 'wiki' or rel.label == 'value':
+                    #return '"{}"'.format(c.name)
+                #else:
+                return c.name
             return '({} / {}'.format(rel.child_id, c.name)
 
         # TODO: sort the relation labels per node
