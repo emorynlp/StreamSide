@@ -1,0 +1,6 @@
+{
+  "graphs": [
+    {"tid": "simple.0", "last_saved": "14/08/2020 16:52:19", "annotator": "choi", "tokens": ["He", "threw", "the", "ball", "away"], "concepts": {"c0": {"name": "he", "token_ids": [0], "attribute": false}, "c1": {"name": "throw_away", "token_ids": [1, 4], "attribute": false}, "c2": {"name": "ball", "token_ids": [3], "attribute": false}}, "relations": {}, "covered_token_ids": [0, 1, 3, 4], "_concept_id": 3, "_relation_id": 0},
+    {"tid": "simple.1", "last_saved": "14/08/2020 16:55:27", "annotator": "choi", "tokens": ["I", "am", "thirty", "two", "years", "old"], "concepts": {"c0": {"name": "i", "token_ids": [0], "attribute": false}, "a2": {"name": "32", "token_ids": [2, 3], "attribute": true}}, "relations": {"r0": {"parent_id": "c0", "child_id": "a2", "label": "age", "referent": false}}, "covered_token_ids": [0, 2, 3], "_concept_id": 3, "_relation_id": 1}
+  ]
+}
