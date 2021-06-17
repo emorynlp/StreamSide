@@ -1,4 +1,4 @@
-#  Copyright 2020 Emory University
+#  Copyright 2020, 2021 Emory University
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 __author__ = 'Jinho D. Choi'
 
+import sys
 from datetime import datetime
 
 try:
@@ -332,8 +333,8 @@ class GraphAnnotator(QMainWindow):
 
         # edit
         menu = menubar.addMenu('Edit')
+        menu.addAction(action('Create Attribute', 'a', self.menu_create_attribute))
         menu.addAction(action('Create Concept', 'c', self.menu_create_concept))
-        menu.addAction(action('Create Concept', 'a', self.menu_create_attribute))
         menu.addAction(action('Create Relation', 'r', self.menu_create_relation))
         menu.addSeparator()
         menu.addAction(action('Delete', 'Ctrl+d', self.menu_delete))
@@ -432,7 +433,8 @@ class GraphAnnotator(QMainWindow):
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
         text = ' '.join(tokens) if attribute else '_'.join(tokens).lower()
-        name = ConceptDialog(self, 'Create a concept', text).exec_()
+        ctype = 'an attribute' if attribute else 'a concept'
+        name = ConceptDialog(self, 'Create {}'.format(ctype), text).exec_()
         ctype = 'Attribute' if attribute else 'Concept'
 
         if name:
@@ -814,7 +816,7 @@ def main():
     app = QApplication([])
     gui = GraphAnnotator(args.resources, args.mode, args.annotator)
     gui.show()
-    app.exec_()
+    sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

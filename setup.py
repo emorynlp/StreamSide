@@ -15,7 +15,7 @@ setuptools.setup(
     url='https://github.com/emorynlp/StreamSide',
     packages=setuptools.find_packages(),
     install_requires=[
-         'PyQt5==5.15.0'
+         'PyQt5==5.15.4'
      ],
      classifiers=[
          'Programming Language :: Python :: 3',
