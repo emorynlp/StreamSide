@@ -22,7 +22,7 @@ try:
 except ImportError:
     import importlib_resources as pkg_resources
 
-from streamside.resources import wisen, amr
+from streamside.resources import wiser, amr
 
 import argparse
 import json
@@ -35,7 +35,7 @@ from PyQt5.QtGui import QKeySequence, QTextCursor, QTextCharFormat, QFont
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMainWindow, QAction, qApp, QFileDialog, QHBoxLayout, \
     QMessageBox, QGridLayout, QTextEdit, QCompleter, QLineEdit, QDialog, QPushButton, QCheckBox, QPlainTextEdit, QShortcut, QStatusBar, QInputDialog, QVBoxLayout
 
-from streamside.struct import Graph, OffsetMap, Offset
+from streamside.struct import Graph, OffsetMap, Offset, penman_reader
 
 
 class InputDialog(QDialog):
@@ -69,8 +69,9 @@ class InputDialog(QDialog):
 
 
 class ConceptDialog(InputDialog):
-    def __init__(self, parent, title: str, concept_name: str):
-        super().__init__(parent, title, 350, parent.concept_list, 50)
+    def __init__(self, parent, title: str, concept_name: str, attribute: bool):
+        ctype = 'an attribute' if attribute else 'a concept'
+        super().__init__(parent, '{} {}'.format(title, ctype), 350, parent.concept_list, 50)
         self.concept_dict = parent.concept_dict
         layout = QVBoxLayout()
         self.setLayout(layout)
@@ -99,7 +100,7 @@ class ConceptDialog(InputDialog):
         l.addWidget(self.btn_cancel)
 
         # layout
-        layout.addWidget(QLabel('Enter the concept name:'))
+        layout.addWidget(QLabel('Enter the name:'))
         layout.addWidget(wg_concept)
         layout.addWidget(self.lb_desc)
         layout.addWidget(wg_button)
@@ -271,7 +272,7 @@ class GraphAnnotator(QMainWindow):
             f_concepts = open(os.path.join(resource_dir, 'concepts.json'))
             f_relations = open(os.path.join(resource_dir, 'relations.json'))
         else:
-            m = wisen if mode == 'wisen' else amr
+            m = wiser if mode == 'wiser' else amr
             f_concepts = pkg_resources.open_text(m, 'concepts.json')
             f_relations = pkg_resources.open_text(m, 'relations.json')
 
@@ -374,13 +375,23 @@ class GraphAnnotator(QMainWindow):
                 fin = open(txt_file)
                 tid = os.path.basename(txt_file)[:-4]
                 self.graphs = [Graph(text, '{}.{}'.format(tid, i), self.annotator) for i, text in enumerate(fin)]
-                self.filename = json_file
 
         def open_json(json_file):
             self.filename = json_file
             with open(self.filename) as fin:
                 d = json.load(fin)
                 self.graphs = [Graph.factory(graph) for graph in d['graphs']]
+
+        def open_penman(penman_file):
+            json_file = '{}{}.json'.format(penman_file[:-6], self.annotator)
+            self.filename = json_file
+
+            if os.path.exists(json_file):
+                msg = 'Annotation exists for the selected text file. Opening the annotation file instead.'
+                message_box(msg, QMessageBox.Ok)
+                open_json(json_file)
+            else:
+                self.graphs = penman_reader(penman_file)
 
         # get filename
         filename = QFileDialog.getOpenFileName(self, 'Open File')[0]
@@ -392,6 +403,8 @@ class GraphAnnotator(QMainWindow):
             open_txt(filename)
         elif filename[-5:].lower() == '.json':
             open_json(filename)
+        elif filename[-7:].lower() == '.penman':
+            open_penman(filename)
         else:
             self.statusbar.showMessage('Unsupported file type: {}'.format(os.path.basename(filename)))
             return
@@ -433,8 +446,7 @@ class GraphAnnotator(QMainWindow):
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
         text = ' '.join(tokens) if attribute else '_'.join(tokens).lower()
-        ctype = 'an attribute' if attribute else 'a concept'
-        name = ConceptDialog(self, 'Create {}'.format(ctype), text).exec_()
+        name = ConceptDialog(self, 'Create', text, attribute).exec_()
         ctype = 'Attribute' if attribute else 'Concept'
 
         if name:
@@ -521,11 +533,12 @@ class GraphAnnotator(QMainWindow):
         if type(sel) is str:
             c = graph.get_concept(sel)
             if c:
-                name = ConceptDialog(self, 'Update the concept', c.name).exec_()
+                c.attribute
+                name = ConceptDialog(self, 'Update', c.name, c.attribute).exec_()
                 if name:
                     c.name = name
                     updated = True
-                    self.statusbar.showMessage('Update concept: {}'.format(sel))
+                    self.statusbar.showMessage('Update: {}'.format(sel))
         else:
             label, parent_id, child_id = sel[0], sel[1], sel[2]
             for rid, r in graph.parent_relations(child_id):
@@ -807,9 +820,9 @@ def current_time():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='StreamSide WiSeN Annotator')
+    parser = argparse.ArgumentParser(description='StreamSide Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-m', '--mode', type=str, default='wisen', help='wisen|amr')
+    parser.add_argument('-m', '--mode', type=str, default='wiser', help='wiser|amr')
     parser.add_argument('-r', '--resources', type=str, default='', help='path to the directory containing resource files')
     args = parser.parse_args()
 

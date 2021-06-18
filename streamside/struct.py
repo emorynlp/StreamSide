@@ -16,7 +16,13 @@ __author__ = 'Jinho D. Choi'
 
 import copy
 import json
+import re
 from typing import Tuple, Optional, List, Dict, Set, Iterable
+
+PENMAN_TEXT = 'snt'
+PENMAN_TID = 'id'
+PENMAN_ANNOTATOR = 'annotator'
+PENMAN_LAST_SAVED = 'save-date'
 
 
 class Concept:
@@ -132,7 +138,7 @@ class OffsetMap:
 
 
 class Graph:
-    def __init__(self, text: str, tid: str = None, annotator: str = None):
+    def __init__(self, text: str, tid: str = None, annotator: str = None, last_saved: str = None):
         """
         This class consists of a text, an AMR graph for the text, and related meta data.
         :param text: the raw text.
@@ -141,8 +147,8 @@ class Graph:
         """
         # meta
         self.tid = tid
-        self.last_saved = ''
         self.annotator = annotator
+        self.last_saved = last_saved
         self.tokens = text.split()
 
         # graph
@@ -290,11 +296,7 @@ class Graph:
         def repr_concept(rel: Relation) -> str:
             if rel.referent: return rel.child_id
             c = self.concepts[rel.child_id]
-            if amr and c.attribute and self.parent_relations(rel.child_id):
-                #if (rel.label.startswith('op') and rel.label[2:].isdigit() and self.concepts[rel.parent_id].name == 'name') or rel.label == 'wiki' or rel.label == 'value':
-                    #return '"{}"'.format(c.name)
-                #else:
-                return c.name
+            if amr and c.attribute and self.parent_relations(rel.child_id): return c.name
             return '({} / {}'.format(rel.child_id, c.name)
 
         # TODO: sort the relation labels per node
@@ -311,7 +313,11 @@ class Graph:
         rep = []
         aux(Relation('', concept_id, ''), rep, '')
         if amr:
-            meta = '# ::id {} ::save-date {} ::annotator {}\n# ::snt {}\n'.format(self.tid, self.last_saved, self.annotator, ' '.join(self.tokens))
+            meta = '# ::{} {} ::{} {} ::{} {}\n# ::{} {}\n'.format(
+                PENMAN_TID, self.tid,
+                PENMAN_LAST_SAVED, self.last_saved,
+                PENMAN_ANNOTATOR, self.annotator,
+                PENMAN_TEXT, ' '.join(self.tokens))
             return meta + ''.join(rep)
         else:
             return ''.join(rep)
@@ -367,3 +373,128 @@ class Graph:
         """
         token_ids = sorted(token_ids)
         return [self.tokens[i] for i in token_ids]
+
+
+def penman_reader(input_file: str) -> Optional[List[Graph]]:
+    class DynamicStack:
+        def __init__(self):
+            self.concept_stack: List[str] = list()
+            self.cid_map: Dict[str, str] = dict()
+            self.relation: Optional[str] = None
+
+        def push_concept(self, org_cid: str, new_cid: str):
+            self.concept_stack.append(new_cid)
+            self.cid_map[org_cid] = new_cid
+
+        def pop_concept(self) -> str:
+            return self.concept_stack.pop()
+
+    def trim_line(ln):
+        ln = ln.strip()
+        ln = RE_LRB.sub('(', ln)
+        ln = RE_RRB.sub(')', ln)
+        return ln
+
+    def parse_comments(cdict: Dict[str, str], ln: str):
+        key, values = None, []
+
+        for t in ln.split():
+            if t.startswith('::'):
+                if key: cdict[key] = ' '.join(values) if values else True
+                key, values = t[2:], []
+            else:
+                values.append(t)
+
+        if key: cdict[key] = ' '.join(values) if values else True
+
+    def create_graph(cdict: Dict[str, str]) -> Graph:
+        text = cdict.get(PENMAN_TEXT, '')
+        tid = cdict.get(PENMAN_TID, None)
+        annotator = cdict.get(PENMAN_ANNOTATOR, cdict.get('amr-annotator', None))
+        last_saved = cdict.get(PENMAN_LAST_SAVED, None)
+        return Graph(text, tid, annotator, last_saved)
+
+    def get_concept_name(cname: str):
+        for j in range(len(cname), 0, -1):
+            if cname[j - 1] != ')':
+                return cname[:j], len(cname) - j
+        return None, -1
+
+    def handle_relation(cid: str, referent: bool = False) -> bool:
+        if dstack.relation:
+            if not dstack.concept_stack:
+                print('Line {}: missing parent concept'.format(lid))
+                return False
+            pid = dstack.concept_stack[-1]
+            graph.add_relation(pid, cid, dstack.relation, referent)
+            dstack.relation = None
+        return True
+
+    def populate_graph(graph: Graph, dstack: DynamicStack, lid: int, line: str) -> bool:
+        ts = line.split()
+        i, n, skip = 0, len(ts), False
+
+        while i < n:
+            t = ts[i]
+            if t.startswith('('):
+                if not (i + 2 < n and ts[i + 1] == '/'):
+                    print('Line {}: invalid concept definition'.format(lid))
+                    return False
+
+                org_cid = t[1:]
+                i += 2
+                cname, nrrb = get_concept_name(ts[i])
+                if cname is None:
+                    print('Line {}: invalid concept definition'.format(lid))
+                    return False
+
+                new_cid = graph.add_concept(cname)
+                if not handle_relation(new_cid): return False
+                dstack.push_concept(org_cid, new_cid)
+                for _ in range(nrrb): dstack.pop_concept()
+            elif t.startswith(':'):
+                dstack.relation = t[1:]
+            else:
+                cname, nrrb = get_concept_name(t)
+                if cname is None:
+                    print('Line {}: invalid concept definition'.format(lid))
+                    return False
+
+                new_cid = dstack.cid_map.get(cname, None)
+                if new_cid:
+                    if not handle_relation(new_cid): return False
+                else:
+                    new_aid = graph.add_concept(cname, attribute=True)
+                    if not handle_relation(new_aid): return False
+                for _ in range(nrrb): dstack.pop_concept()
+            i += 1
+        return True
+
+    RE_LRB = re.compile(r'\(\s+')
+    RE_RRB = re.compile(r'\s+\)')
+    graph, comments, dstack = None, dict(), DynamicStack()
+    fin = open(input_file)
+    graphs = []
+
+    for lid, line in enumerate(fin, 1):
+        line = trim_line(line)
+        if not line: continue
+
+        if line.startswith('#'):
+            parse_comments(comments, line)
+            continue
+
+        if graph is None:
+            if not line.startswith('('):
+                print('Line {}: missing concept definition'.format(lid))
+                return None
+            graph = create_graph(comments)
+
+        if not populate_graph(graph, dstack, lid, line):
+            return None
+
+        if not dstack.concept_stack:
+            graphs.append(graph)
+            graph, comments, dstack = None, dict(), DynamicStack()
+
+    return graphs

@@ -83,7 +83,7 @@ def propbank_frames_to_json(frame_dir: str, json_file: str, arg_file: str):
 
 
 def create_concept_json():
-    resource_dir = 'resources/wisen'
+    resource_dir = 'resources/wiser'
     cson = dict()
 
     d = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
@@ -105,7 +105,7 @@ def create_concept_json():
 
 
 def map_concept():
-    resource_dir = 'resources/wisen'
+    resource_dir = 'resources/wiser'
     pred = json.load(open(os.path.join(resource_dir, 'concept-predicate.json')))
     cson = json.load(open(os.path.join(resource_dir, 'concept-desc.json')))
 
@@ -119,7 +119,7 @@ def map_concept():
 
 
 def create_relation_json():
-    resource_dir = 'resources/wisen'
+    resource_dir = 'resources/wiser'
     cson = dict()
 
     for l in open(os.path.join(resource_dir, 'relation-core.txt')):
@@ -221,12 +221,12 @@ def amr_concept_json():
 
 if __name__ == "__main__":
     # frames_to_json('resources/propbank-amr-frames-arg-descr.txt')
-    # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/wisen/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
+    # propbank_frames_to_json('resources/amr/propbank-frames-xml/', 'resources/wiser/concept-predicate.json', 'resources/amr/propbank-amr-frames-arg-descr.txt')
     # create_concept_json()
     # map_concept()
     # create_relation_json()
-    # add_field_to_concept('resources/wisen/concepts.json')
+    # add_field_to_concept('resources/wiser/concepts.json')
     # amr_concept_json()
-    # add_field_to_relation('resources/wisen/relations.json')
+    # add_field_to_relation('resources/wiser/relations.json')
     # amr_concept_json()
     pass
