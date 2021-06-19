@@ -23,6 +23,7 @@ PENMAN_TEXT = 'snt'
 PENMAN_TID = 'id'
 PENMAN_ANNOTATOR = 'annotator'
 PENMAN_LAST_SAVED = 'save-date'
+PENMAN_ALIGNMENTS = 'alighments'
 
 
 class Concept:
@@ -211,17 +212,19 @@ class Graph:
         c.name = name
         return c
 
-    def remove_concept(self, concept_id: str) -> Optional[Concept]:
+    def remove_concept(self, concept_id: str, remove_relations: bool = True) -> Optional[Concept]:
         """
         Removes the concept and all relations as well as attributes associated with it.
         :param concept_id: the ID of the concept to be removed.
+        :param remove_relations: if True, remove all relations associated with the concept.
         :return: the removed concept if exists; otherwise, None.
         """
         if concept_id not in self.concepts: return None
 
-        for rid, r in list(self.relations.items()):
-            if r.parent_id == concept_id or r.child_id == concept_id:
-                del self.relations[rid]
+        if remove_relations:
+            for rid, r in list(self.relations.items()):
+                if r.parent_id == concept_id or r.child_id == concept_id:
+                    del self.relations[rid]
 
         con = self.concepts.pop(concept_id)
         self.covered_token_ids -= set(con.token_ids)
@@ -310,6 +313,10 @@ class Graph:
                     aux(relation, r, indent + ' ' * (len(relation.label) + 2))
                 if cname.startswith('('): r.append(')')
 
+        def alignments():
+            ts = [(concept.token_ids[0], '{}/{}'.format(cid, ','.join(map(str, concept.token_ids)))) for cid, concept in self.concepts.items() if concept.token_ids]
+            return ' '.join([v for k, v in sorted(ts)])
+
         rep = []
         aux(Relation('', concept_id, ''), rep, '')
         if amr:
@@ -318,6 +325,8 @@ class Graph:
                 PENMAN_LAST_SAVED, self.last_saved,
                 PENMAN_ANNOTATOR, self.annotator,
                 PENMAN_TEXT, ' '.join(self.tokens))
+            align = alignments()
+            if align: meta = '{}# ::{} {}\n'.format(meta, PENMAN_ALIGNMENTS, align)
             return meta + ''.join(rep)
         else:
             return ''.join(rep)
@@ -462,13 +471,24 @@ def penman_reader(input_file: str) -> Optional[List[Graph]]:
 
                 new_cid = dstack.cid_map.get(cname, None)
                 if new_cid:
-                    if not handle_relation(new_cid): return False
+                    if not handle_relation(new_cid, True): return False
                 else:
                     new_aid = graph.add_concept(cname, attribute=True)
                     if not handle_relation(new_aid): return False
                 for _ in range(nrrb): dstack.pop_concept()
             i += 1
         return True
+
+    def finalize_graph(g: Graph, dstack: DynamicStack) -> Graph:
+        for cid, concept in list(g.concepts.items()):
+            if concept.attribute:
+                new_cid = dstack.cid_map.get(concept.name, None)
+                if new_cid:
+                    for rid, relation in g.parent_relations(cid):
+                        relation.child_id = new_cid
+                        relation.referent = True
+                    g.remove_concept(cid, False)
+        return g
 
     RE_LRB = re.compile(r'\(\s+')
     RE_RRB = re.compile(r'\s+\)')
@@ -494,7 +514,7 @@ def penman_reader(input_file: str) -> Optional[List[Graph]]:
             return None
 
         if not dstack.concept_stack:
-            graphs.append(graph)
+            graphs.append(finalize_graph(graph, dstack))
             graph, comments, dstack = None, dict(), DynamicStack()
 
     return graphs
