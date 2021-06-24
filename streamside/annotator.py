@@ -120,15 +120,22 @@ class ConceptDialog(InputDialog):
 
     def exec_(self) -> Optional[str]:
         super().exec_()
-        return self.ledit.text().strip() if self.ok else None
+        c = self.ledit.text().strip()
+        return c if c and self.ok else None
 
 
 class RelationDialog(InputDialog):
-    def __init__(self, parent, title: str, parent_desc: str, child_desc: str, label: str = '', update: bool = False):
+    def __init__(self, parent, title: str, parent_id: str, child_id: str, label: str = '', update: bool = False):
         super().__init__(parent, title, 550, parent.relation_list, 50)
         self.relation_dict = parent.relation_dict
         layout = QVBoxLayout()
         self.setLayout(layout)
+
+        graph = parent.current_graph
+        parent_concept = graph.get_concept(parent_id)
+        child_concept = graph.get_concept(child_id)
+        parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
+        child_desc = '({} / {})'.format(child_id, child_concept.name)
 
         # components
         self.ledit.setText(label)
@@ -140,7 +147,6 @@ class RelationDialog(InputDialog):
         # AMR only
         self.concept_desc = None
         if parent.mode == 'amr':
-            parent_id = parent_desc.split()[0][1:]
             con = parent.current_graph.get_concept(parent_id)
             d = parent.concept_dict.get(con.name, None)
             if d and d['type'] == 'pred':
@@ -154,6 +160,7 @@ class RelationDialog(InputDialog):
         wg_child.setLayout(l)
         l.addWidget(QLabel('Child: {}'.format(child_desc)), 80)
         if not update:
+            if graph.parent_relations(child_id): self.referent.setChecked(True)
             l.addWidget(self.referent)
             l.addWidget(QLabel('Referent'))
 
@@ -205,6 +212,7 @@ class RelationDialog(InputDialog):
         super().exec_()
         if self.ok:
             label = self.ledit.text().strip()
+            if not label: return None
             if self.inverse.isChecked(): label += '-of'
             return label, self.referent.isChecked()
         else:
@@ -227,6 +235,7 @@ class GraphAnnotator(QMainWindow):
         self.COLOR_SELECTED_PARENT = 'lightpink'
         self.COLOR_SELECTED_CHILD = 'lightgreen'
         self.COLOR_COVERED_TEXT_SPAN = 'khaki'
+        self.COLOR_SELECTED_CONCEPT = 'burlywood'
 
         # resources
         self.concept_dict: Dict[str, str] = dict()
@@ -244,6 +253,7 @@ class GraphAnnotator(QMainWindow):
         self.offset_maps: List[OffsetMap] = []
         self.selected_parent: Optional[Tuple[str, int]] = None
         self.selected_child: Optional[Tuple[str, int]] = None
+        self.selected_concept: Optional[Tuple[str, int]] = None
         self.selected_text_spans: Set[int] = set()
 
         # graphical user interface
@@ -338,16 +348,21 @@ class GraphAnnotator(QMainWindow):
         menu.addAction(action('Create Concept', 'c', self.menu_create_concept))
         menu.addAction(action('Create Relation', 'r', self.menu_create_relation))
         menu.addSeparator()
-        menu.addAction(action('Delete', 'Ctrl+d', self.menu_delete))
         menu.addAction(action('Update', 'Ctrl+f', self.menu_update))
+        menu.addAction(action('Delete', 'Ctrl+d', self.menu_delete))
+        menu.addSeparator()
+        menu.addAction(action('Add Text Span', 'v', self.menu_add_text_spans_to_concept))
+        menu.addAction(action('Remove Text Span', 'Ctrl+v', self.menu_remove_text_spans_from_concept))
 
         # select
         menu = menubar.addMenu('&Select')
         menu.addAction(action('Select Text Span', 'x', self.menu_select_text_span))
+        menu.addAction(action('Select Concept', 'z', self.menu_select_concept))
         menu.addAction(action('Select Parent ID', 'w', self.menu_select_parent))
         menu.addAction(action('Select Child ID', "e", self.menu_select_child))
         menu.addSeparator()
         menu.addAction(action('Deselect Text Span', 'Shift+x', self.menu_deselect_text_span))
+        menu.addAction(action('Deselect Concept', 'Shift+z', self.menu_deselect_concept))
         menu.addAction(action('Deselect Parent ID', 'Shift+w', self.menu_deselect_parent))
         menu.addAction(action('Deselect Child ID', 'Shift+e', self.menu_deselect_child))
 
@@ -475,12 +490,7 @@ class GraphAnnotator(QMainWindow):
         graph = self.current_graph
         parent_id = self.selected_parent[0]
         child_id = self.selected_child[0]
-        parent_concept = graph.get_concept(parent_id)
-        child_concept = graph.get_concept(child_id)
-        parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
-        child_desc = '({} / {})'.format(child_id, child_concept.name)
-
-        t = RelationDialog(self, 'Create a relation', parent_desc, child_desc).exec_()
+        t = RelationDialog(self, 'Create a relation', parent_id, child_id).exec_()
         if t:
             label = t[0]
             referent = t[1]
@@ -517,6 +527,7 @@ class GraphAnnotator(QMainWindow):
         if deleted:
             self.selected_parent = None
             self.selected_child = None
+            self.selected_concept = None
             self.refresh_annotation()
         else:
             self.statusbar.showMessage('No valid concept or relation is highlighted.')
@@ -533,7 +544,6 @@ class GraphAnnotator(QMainWindow):
         if type(sel) is str:
             c = graph.get_concept(sel)
             if c:
-                c.attribute
                 name = ConceptDialog(self, 'Update', c.name, c.attribute).exec_()
                 if name:
                     c.name = name
@@ -543,11 +553,7 @@ class GraphAnnotator(QMainWindow):
             label, parent_id, child_id = sel[0], sel[1], sel[2]
             for rid, r in graph.parent_relations(child_id):
                 if r.label == label and r.parent_id == parent_id:
-                    parent_concept = graph.get_concept(parent_id)
-                    child_concept = graph.get_concept(child_id)
-                    parent_desc = '({} / {})'.format(parent_id, parent_concept.name)
-                    child_desc = '({} / {})'.format(child_id, child_concept.name)
-                    name = RelationDialog(self, 'Update the relation', parent_desc, child_desc, label, True).exec_()
+                    name = RelationDialog(self, 'Update the relation', parent_id, child_id, label, True).exec_()
                     if name:
                         r.label = name[0]
                         self.statusbar.showMessage('Update relation: {}({}, {})'.format(label, parent_id, child_id))
@@ -557,6 +563,7 @@ class GraphAnnotator(QMainWindow):
         if updated:
             self.selected_parent = None
             self.selected_child = None
+            self.selected_concept = None
             self.refresh_annotation()
         else:
             self.statusbar.showMessage('No valid concept or relation is highlighted.')
@@ -593,7 +600,7 @@ class GraphAnnotator(QMainWindow):
 
     ####################  Menubar: Select  ####################
 
-    def menu_select_concept_in_graph(self, pctype):
+    def _menu_select_concept_in_graph(self, pctype):
         selection = self.selected_concept_in_graph()
         if selection is None:
             self.statusbar.showMessage('No valid concept ID is highlighted')
@@ -604,22 +611,32 @@ class GraphAnnotator(QMainWindow):
         if pctype == 'p':
             if self.selected_parent and cid == self.selected_parent[0]: return
             if self.selected_child and cid == self.selected_child[0]: self.selected_child = None
+            self.selected_concept = None
             self.selected_parent = selection
-            pc = 'parent'
-        else:
+            pc = 'Select parent'
+        elif pctype == 'c':
             if self.selected_child and cid == self.selected_child[0]: return
             if self.selected_parent and cid == self.selected_parent[0]: self.selected_parent = None
+            self.selected_concept = None
             self.selected_child = selection
-            pc = 'child'
+            pc = 'Select child'
+        else:  # concept highlight
+            self.selected_parent = None
+            self.selected_child = None
+            self.selected_concept = selection
+            pc = 'Select concept'
 
-        self.statusbar.showMessage('Select {}: {}'.format(pc, cid))
+        self.statusbar.showMessage('{}: {}'.format(pc, cid))
         self.refresh_annotation()
 
     def menu_select_parent(self):
-        self.menu_select_concept_in_graph('p')
+        self._menu_select_concept_in_graph('p')
 
     def menu_select_child(self):
-        self.menu_select_concept_in_graph('c')
+        self._menu_select_concept_in_graph('c')
+
+    def menu_select_concept(self):
+        self._menu_select_concept_in_graph('h')
 
     def menu_deselect_parent(self):
         if self.selected_parent:
@@ -636,6 +653,14 @@ class GraphAnnotator(QMainWindow):
             self.refresh_annotation()
         else:
             self.statusbar.showMessage('No child is selected')
+
+    def menu_deselect_concept(self):
+        if self.selected_concept:
+            self.statusbar.showMessage('Deselect concept: {}'.format(self.selected_concept[0]))
+            self.selected_concept = None
+            self.refresh_annotation()
+        else:
+            self.statusbar.showMessage('No concept is highlighted')
 
     def menu_select_text_span(self):
         offset = self.selected_text_offset()
@@ -669,6 +694,38 @@ class GraphAnnotator(QMainWindow):
             self.statusbar.showMessage('Deselect span: {}'.format(str(tokens)))
         else:
             self.statusbar.showMessage('No selected text span is highlighted')
+
+    def _menu_update_text_spans(self, add: bool):
+        if self.selected_concept is None:
+            self.statusbar.showMessage('No concept is selected')
+            return None
+
+        offset = self.selected_text_offset()
+        if offset is None:
+            self.statusbar.showMessage('No text span is highlighted')
+            return None
+
+        graph = self.current_graph
+        update_func = graph.add_token_ids if add else graph.remove_token_ids
+        concept_id = self.selected_concept[0]
+        token_ids = self.current_offset_map.token_ids(offset)
+        token_ids = update_func(concept_id, token_ids)
+
+        if token_ids is None:
+            self.statusbar.showMessage('No text span is updated for {}'.format(concept_id))
+            return None
+
+        self.selected_text_spans.clear()
+        self.refresh_text()
+
+        tokens = self.current_graph.get_tokens(token_ids)
+        self.statusbar.showMessage('Update span: "{}"'.format(' '.join(tokens)))
+
+    def menu_add_text_spans_to_concept(self):
+        self._menu_update_text_spans(True)
+
+    def menu_remove_text_spans_from_concept(self):
+        self._menu_update_text_spans(False)
 
     ####################  Menubar: Navigate  ####################
 
@@ -719,6 +776,7 @@ class GraphAnnotator(QMainWindow):
             self.tid = tid
             self.selected_parent = None
             self.selected_child = None
+            self.selected_concept = None
             self.selected_text_spans = set()
             self.lb_tid.setText('{}:'.format(tid))
             self.refresh_text()
@@ -734,6 +792,8 @@ class GraphAnnotator(QMainWindow):
                 return self.COLOR_SELECTED_PARENT
             if token_id in selected_child:
                 return self.COLOR_SELECTED_CHILD
+            if token_id in selected_concept:
+                return self.COLOR_SELECTED_CONCEPT
             if token_id in self.selected_text_spans:
                 return self.COLOR_COVERED_TEXT_SPAN
             if token_id in graph.covered_token_ids:
@@ -743,6 +803,7 @@ class GraphAnnotator(QMainWindow):
         graph = self.current_graph
         selected_parent = set(graph.get_concept(self.selected_parent[0]).token_ids) if self.selected_parent else set()
         selected_child = set(graph.get_concept(self.selected_child[0]).token_ids) if self.selected_child else set()
+        selected_concept = set(graph.get_concept(self.selected_concept[0]).token_ids) if self.selected_concept else set()
         tt = []
 
         for i, token in enumerate(graph.tokens):
@@ -784,6 +845,7 @@ class GraphAnnotator(QMainWindow):
 
         set_color(self.selected_parent, self.COLOR_SELECTED_PARENT)
         set_color(self.selected_child, self.COLOR_SELECTED_CHILD)
+        set_color(self.selected_concept, self.COLOR_SELECTED_CONCEPT)
         self.te_graph.setFont(self.FONT_GRAPH)
         self.te_graph.repaint()
 

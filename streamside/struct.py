@@ -23,7 +23,7 @@ PENMAN_TEXT = 'snt'
 PENMAN_TID = 'id'
 PENMAN_ANNOTATOR = 'annotator'
 PENMAN_LAST_SAVED = 'save-date'
-PENMAN_ALIGNMENTS = 'alighments'
+PENMAN_ALIGNMENTS = 'align'
 
 
 class Concept:
@@ -200,6 +200,29 @@ class Graph:
         self._concept_id += 1
         self.concepts[cid] = Concept(name, token_ids, attribute)
         return cid
+
+    def add_token_ids(self, concept_id: str, token_ids: Set[int]) -> Optional[Set[int]]:
+        c = self.concepts.get(concept_id, None)
+        if c is None: return None
+
+        s = token_ids - self.covered_token_ids
+        if not s: return None
+
+        self.covered_token_ids.update(s)
+        c.token_ids.extend(s)
+        c.token_ids.sort()
+        return s
+
+    def remove_token_ids(self, concept_id: str, token_ids: Set[int]) -> Optional[Set[int]]:
+        c = self.concepts.get(concept_id, None)
+        if c is None: return None
+
+        s = set(c.token_ids).intersection(token_ids)
+        if not s: return None
+
+        self.covered_token_ids -= s
+        c.token_ids = [t for t in c.token_ids if t not in s]
+        return s
 
     def update_concept(self, concept_id: str, name: str) -> Optional[Concept]:
         """
@@ -479,7 +502,19 @@ def penman_reader(input_file: str) -> Optional[List[Graph]]:
             i += 1
         return True
 
-    def finalize_graph(g: Graph, dstack: DynamicStack) -> Graph:
+    def to_alignments(comments: Dict[str, str]):
+        v = comments.get(PENMAN_ALIGNMENTS, None)
+        if v is None: return dict()
+        d = dict()
+        for t in v.split():
+            idx = t.find('/')
+            if idx < 0: return None
+            cid = t[:idx]
+            tids = list(map(int, t[idx + 1:].split(',')))
+            d[cid] = tids
+        return d
+
+    def finalize_graph(g: Graph, dstack: DynamicStack, comments: Dict[str, str]) -> Graph:
         for cid, concept in list(g.concepts.items()):
             if concept.attribute:
                 new_cid = dstack.cid_map.get(concept.name, None)
@@ -488,6 +523,14 @@ def penman_reader(input_file: str) -> Optional[List[Graph]]:
                         relation.child_id = new_cid
                         relation.referent = True
                     g.remove_concept(cid, False)
+
+        for org_cid, tids in to_alignments(comments).items():
+            new_cid = dstack.cid_map.get(org_cid, '')
+            c = g.get_concept(new_cid)
+            if c:
+                g.covered_token_ids.update(tids)
+                c.token_ids = tids
+
         return g
 
     RE_LRB = re.compile(r'\(\s+')
@@ -514,7 +557,7 @@ def penman_reader(input_file: str) -> Optional[List[Graph]]:
             return None
 
         if not dstack.concept_stack:
-            graphs.append(finalize_graph(graph, dstack))
+            graphs.append(finalize_graph(graph, dstack, comments))
             graph, comments, dstack = None, dict(), DynamicStack()
 
     return graphs
