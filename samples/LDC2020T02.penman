@@ -1,0 +1,78 @@
+# AMR release; corpus: mt09sdl; section: training; number of AMRs: 204 (generated on Thu Jan 25, 2018 at 16:14:26)
+
+# ::id sdl_0002.1 ::date 2013-07-02T03:00:13 ::annotator SDL-AMR-09 ::preferred
+# ::snt Rockström said that when rich countries increase their consumption , they also accelerate the exploitation of the world 's national resources , with the result that they emit more greenhouse gases .
+# ::save-date Thu Jul 11, 2013 ::file sdl_0002_1.txt
+(s / say-01
+      :ARG0 (p / person :wiki "Johan_Rockström"
+            :name (n / name :op1 "Rockström"))
+      :ARG1 (a / accelerate-01
+            :ARG0 (c / country
+                  :mod (r / rich))
+            :ARG1 (e / exploit-01
+                  :ARG0 c
+                  :ARG1 (r2 / resource
+                        :mod (n2 / nation)
+                        :poss (w / world)))
+            :mod (a2 / also)
+            :time (i / increase-01
+                  :ARG0 c
+                  :ARG1 (c2 / consume-01
+                        :ARG0 c))
+            :ARG0-of (c3 / cause-01
+                  :ARG1 (e2 / emit-01
+                        :ARG0 c
+                        :ARG1 (g / gas
+                              :mod (g2 / greenhouse)
+                              :mod (m / more))))))
+
+# ::id sdl_0002.2 ::date 2013-07-04T02:23:45 ::annotator SDL-AMR-09 ::preferred
+# ::snt This will ultimately accelerate the speed of desertification in sub - Saharan African countries and other areas of the world .
+# ::save-date Wed Feb 10, 2016 ::file sdl_0002_2.txt
+(a / accelerate-01
+      :ARG0 (t / this)
+      :ARG1 (s / speed-01
+            :ARG0 t
+            :ARG1 (d / desertification
+                  :location (a2 / and
+                        :op1 (c / country
+                              :location (w2 / world-region :wiki "Sub-Saharan_Africa" :name (n / name :op1 "Sub-Saharan" :op2 "Africa")))
+                        :op2 (a3 / area
+                              :part-of (w / world)
+                              :mod (o / other)))))
+      :time (u / ultimate))
+
+# ::id sdl_0002.3 ::date 2013-07-04T02:52:50 ::annotator SDL-AMR-09 ::preferred
+# ::snt The ice sheet has melted earlier this season .
+# ::save-date Fri Oct 20, 2017 ::file sdl_0002_3.txt
+(m / melt-01
+      :ARG1 (s / sheet
+            :consist-of (i / ice))
+      :time (b / before)
+      :time (s2 / season
+            :mod (t / this)))
+
+# ::id sdl_0002.4 ::date 2013-07-08T01:50:45 ::annotator SDL-AMR-09 ::preferred
+# ::snt Consequently , experts have predicted that the world has at least ten years within which to lower the volume of greenhouse gas emissions before it is too late to redeem the situation .
+# ::save-date Mon Dec 11, 2017 ::file sdl_0002_4.txt
+(c / cause-01
+      :ARG1 (p / predict-01
+            :ARG0 (p2 / person
+                  :ARG1-of (e / expert-01))
+            :ARG1 (h / have-03
+                  :ARG0 (w / world)
+                  :ARG1 (y / year
+                        :quant (a / at-least :op1 10)
+                        :purpose (l / lower-05
+                              :ARG0 w
+                              :ARG1 (v / volume
+                                    :mod (e2 / emit-01
+                                          :ARG0 w
+                                          :ARG1 (g / gas
+                                                :mod (g2 / greenhouse))))
+                              :time (b / before
+                                    :op1 (h2 / have-degree-91
+                                          :ARG2 (l2 / late)
+                                          :ARG3 (t / too)
+                                          :ARG6 (r / redeem-01
+                                                :ARG1 (s / situation)))))))))
