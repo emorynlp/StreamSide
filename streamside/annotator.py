@@ -460,7 +460,7 @@ class GraphAnnotator(QMainWindow):
         self.menu_select_text_span()
         graph = self.current_graph
         tokens = graph.get_tokens(self.selected_text_spans)
-        text = ' '.join(tokens) if attribute else '_'.join(tokens).lower()
+        text = ' '.join(tokens) if attribute else '-'.join(tokens).lower()
         name = ConceptDialog(self, 'Create', text, attribute).exec_()
         ctype = 'Attribute' if attribute else 'Concept'
 
