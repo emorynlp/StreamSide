@@ -160,7 +160,9 @@ class RelationDialog(InputDialog):
         wg_child.setLayout(l)
         l.addWidget(QLabel('Child: {}'.format(child_desc)), 80)
         if not update:
-            if graph.parent_relations(child_id): self.referent.setChecked(True)
+            if graph.parent_relations(child_id) or graph.is_ancestor(child_id, parent_id):
+                self.referent.setChecked(True)
+                self.referent.setEnabled(False)
             l.addWidget(self.referent)
             l.addWidget(QLabel('Referent'))
 

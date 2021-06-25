@@ -166,8 +166,9 @@ class Graph:
         """
         :return: list of root concept IDs sorted by begin offsets in ascending order.
         """
-        cids = [cid for cid in self.concepts if not self.parent_relations(cid)]
+        cids = [cid for cid in self.concepts if not self.parent_relations(cid, True)]
         cids.sort(key=lambda x: int(x[1:]))
+        print(cids)
         return cids
 
     def get_concept(self, concept_id: str) -> Optional[Concept]:
@@ -268,13 +269,13 @@ class Graph:
         if parent_id not in self.concepts: return []
         return [(rid, r) for rid, r in self.relations.items() if r.parent_id == parent_id]
 
-    def parent_relations(self, child_id: str) -> List[Tuple[str, Relation]]:
+    def parent_relations(self, child_id: str, ignore_referent: bool = False) -> List[Tuple[str, Relation]]:
         """
         :param child_id: the child ID.
         :return: list of (relation ID, Relation) with the specific child.
         """
         if child_id not in self.concepts: return []
-        return [(rid, r) for rid, r in self.relations.items() if r.child_id == child_id]
+        return [(rid, r) for rid, r in self.relations.items() if r.child_id == child_id and not (ignore_referent and r.referent)]
 
     # TODO: check if the relation already exists
     def add_relation(self, parent_id: str, child_id: str, label: str, referent: bool = False) -> str:
@@ -311,6 +312,28 @@ class Graph:
         :return: the removed relation if exists; otherwise, None.
         """
         return self.relations.pop(relation_id) if relation_id in self.relations else None
+
+    def get_parent_ids(self, child_id, ignore_referent: bool) -> Set[str]:
+        """
+        :param child_id: the ID of the child concept.
+        :param ignore_referent: if True, ignore relations where the child concept is a referent.
+        :return: the set of parent IDs
+        """
+        return {r.parent_id for _, r in self.parent_relations(child_id, ignore_referent)}
+
+    def is_ancestor(self, concept_id1: str, concept_id2: str, ignore_referent: bool = False) -> bool:
+        """
+        :param concept_id1: the ID of the first concept.
+        :param concept_id2: the ID of the second concept.
+        :param ignore_referent: if True, ignore relations where the child concept is a referent.
+        :return: True if the first concept is an ancestor of the second concept.
+        """
+        parent_ids = self.get_parent_ids(concept_id2, ignore_referent)
+        if concept_id1 in parent_ids: return True
+        for parent_id in parent_ids:
+            if self.is_ancestor(concept_id1, parent_id, ignore_referent):
+                return True
+        return False
 
     def penman(self, concept_id: str, amr: bool) -> str:
         """

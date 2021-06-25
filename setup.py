@@ -5,11 +5,11 @@ with open('README.md') as fh:
 
 setuptools.setup(
     name='streamside',
-    version='0.2',
+    version='0.3',
     scripts=[],
     author='Jinho D. Choi',
     author_email='jinho.choi@emory.edu',
-    description='Semantic Network Annotation Toolkit',
+    description='Meaning Representation Annotation Toolkit',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/emorynlp/StreamSide',
