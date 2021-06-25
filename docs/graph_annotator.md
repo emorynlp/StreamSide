@@ -11,21 +11,31 @@ python -m streamside.annotator -a ANNOTATOR_ID [-m wiser|amr -r RESOURCE_DIR] &
 * `-m` or `--mode`: choose the representation `wisen` (default) or `amr`.
 * `-r` or `--resources`: the path to a custom resource directory; if not specified, it uses the default [resources](../streamside/resources/).
 
+> For the following sections, replace the `Ctrl` key with the `Cmd` key if you are using a mac.
 
-## Annotate
 
-> If you are using a mac, replace the `Ctrl` key with the `Cmd` key .
+## File Menu
 
-### Open File
+### Open
 
 Press `Ctrl+o` to prompt a file dialog:
 
-* For the initial annotation, choose a text file comprising a sentence per line (e.g., [training-examples.txt](training-examples.txt)).
-* For a returning annotation, choose a JSON file that is previously saved (e.g., [training-examples.jdchoi.json](training-examples.jdchoi.json)).
+* For the initial annotation, choose a text file comprising a sentence per line (e.g., [sample-amr.txt](../samples/sample-amr.txt)).
+* For a returning annotation, choose a JSON file that is previously saved (e.g., [sample-amr.jdchoi.json](../samples/sample-amr.jdchoi.json)).
+* If you have an existing annotation in the Penman notation, choose a Penman file (e.g., [sample-amr.penman](../samples/sample-amr.penman)).
 
-### Save File
+> StreamSide supports only the following file extensions: `txt`, `json`, `penman`. 
+
+### Save
 
 Press `Ctrl+s` to save the current annotation to the JSON file whose name includes the annotator ID.
+
+### Quit
+
+Press `Ctrl+q` to quit the annotator.
+
+
+## Edit Menu
 
 ### Create Concept
 
@@ -76,15 +86,7 @@ Once the input dialog is prompted:
 * To make an inverse relation (`*-of`), press `Ctrl+f` or check the `Inverse` box.
 * Press `Enter` or the `OK` button to create the concept.
 
-### Delete
-
-To delete a concept or an attribute:
-
-* Highlight the ID of the concept/attribute and press `Ctrl+d`.
-
-To delete a relation:
-
-* Highlight the label of the relation and press `Ctrl+d`.
+> The `Referent` box gets automatically checked if (1) the child concept already has another parent concept or (2) if the child concept is an ancestor of the parent concept.   
 
 ### Update
 
@@ -96,6 +98,23 @@ To update the label of a relation:
 
 * Highlight the label of the relation and press `Ctrl+f`.
 
+### Delete
+
+To delete a concept or an attribute:
+
+* Highlight the ID of the concept/attribute and press `Ctrl+d`.
+
+To delete a relation:
+
+* Highlight the label of the relation and press `Ctrl+d`.
+
+### Add/Remove Text Span
+
+To add/remove certain text spans to an existing concept (or attribute):
+
+* Highlight the ID of the concept and press `z` that shows it as well as text spans associated with the concept in a <span style="background-color:burlywood;">burlywood</span> background.
+* Highlight text spans you want to add/remove to/from the concept and press `v`.
+* To deselect the concept/attribute, press `Shift+z`.
 
 ### Navigate
 

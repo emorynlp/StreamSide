@@ -168,7 +168,6 @@ class Graph:
         """
         cids = [cid for cid in self.concepts if not self.parent_relations(cid, True)]
         cids.sort(key=lambda x: int(x[1:]))
-        print(cids)
         return cids
 
     def get_concept(self, concept_id: str) -> Optional[Concept]:
@@ -261,13 +260,13 @@ class Graph:
         """
         return self.relations.get(relation_id, None)
 
-    def child_relations(self, parent_id: str) -> List[Tuple[str, Relation]]:
+    def child_relations(self, parent_id: str, ignore_referent: bool = False) -> List[Tuple[str, Relation]]:
         """
         :param parent_id: the parent ID.
         :return: list of (relation ID, Relation) with the specific parent.
         """
         if parent_id not in self.concepts: return []
-        return [(rid, r) for rid, r in self.relations.items() if r.parent_id == parent_id]
+        return [(rid, r) for rid, r in self.relations.items() if r.parent_id == parent_id and not (ignore_referent and r.referent)]
 
     def parent_relations(self, child_id: str, ignore_referent: bool = False) -> List[Tuple[str, Relation]]:
         """
@@ -313,6 +312,14 @@ class Graph:
         """
         return self.relations.pop(relation_id) if relation_id in self.relations else None
 
+    def get_child_ids(self, parent_id, ignore_referent: bool) -> Set[str]:
+        """
+        :param parent_id: the ID of the parent concept.
+        :param ignore_referent: if True, ignore relations where the child concept is a referent.
+        :return: the set of child IDs
+        """
+        return {r.child_id for _, r in self.child_relations(parent_id, ignore_referent)}
+
     def get_parent_ids(self, child_id, ignore_referent: bool) -> Set[str]:
         """
         :param child_id: the ID of the child concept.
@@ -335,6 +342,34 @@ class Graph:
                 return True
         return False
 
+    def _update_first_token_ids(self, concept_id: str, first_token_id: int):
+        for parent_id in self.get_parent_ids(concept_id, True):
+            parent = self.get_concept(parent_id)
+            if not parent.token_ids and first_token_id < parent.first_token_id:
+                parent.first_token_id = first_token_id
+                self._update_first_token_ids(parent_id, first_token_id)
+
+    def _assign_first_token_ids(self):
+        MAX, count = 1000000, 0
+        for cid, concept in self.concepts.items():
+            if concept.token_ids:
+                concept.first_token_id = concept.token_ids[0]
+            else:
+                concept.first_token_id = MAX
+                count += 1
+
+        while count > 0:
+            prev_count = count
+            for cid, concept in self.concepts.items():
+                first_token_id = concept.first_token_id
+                if first_token_id < MAX:
+                    for parent_id in self.get_parent_ids(cid, True):
+                        parent = self.get_concept(parent_id)
+                        if not parent.token_ids and first_token_id < parent.first_token_id:
+                            if parent.first_token_id == MAX: count -= 1
+                            parent.first_token_id = first_token_id
+            if prev_count == count: break
+
     def penman(self, concept_id: str, amr: bool) -> str:
         """
         :param concept_id: the ID of the root concept.
@@ -348,13 +383,12 @@ class Graph:
             if amr and c.attribute and self.parent_relations(rel.child_id): return c.name
             return '({} / {}'.format(rel.child_id, c.name)
 
-        # TODO: sort the relation labels per node
         def aux(rel: Relation, r: List[str], indent: str):
             cname = repr_concept(rel)
             r.append(cname)
             if not rel.referent:
                 indent += ' ' * (len(rel.child_id) + 2)
-                for rid, relation in sorted(self.child_relations(rel.child_id), key=lambda x: x[1].label):
+                for rid, relation in sorted(self.child_relations(rel.child_id), key=lambda x: self.get_concept(x[1].child_id).first_token_id):
                     r.append('\n{}:{} '.format(indent, relation.label))
                     aux(relation, r, indent + ' ' * (len(relation.label) + 2))
                 if cname.startswith('('): r.append(')')
@@ -382,6 +416,7 @@ class Graph:
         :param amr: if True, the return notation is compatible to AMR.
         :return: list of graphs in the Penman notation.
         """
+        self._assign_first_token_ids()
         return [self.penman(root_id, amr) for root_id in self.root_ids]
 
     def json_dumps(self, **kwargs) -> str:

@@ -229,7 +229,7 @@ class GraphAnnotator(QMainWindow):
         font = QFont()
         font.setFamily('Courier New')
 
-        self.VERSION = '0.1'
+        self.VERSION = '0.4'
         self.RE_CONCEPT_ID = re.compile(r'([ca]\d+)')
         self.RE_CONCEPT_ID_PAREN = re.compile(r'(?:^| )\(([ca]\d+) /')
         self.FONT_GRAPH = font
@@ -346,8 +346,8 @@ class GraphAnnotator(QMainWindow):
 
         # edit
         menu = menubar.addMenu('Edit')
-        menu.addAction(action('Create Attribute', 'a', self.menu_create_attribute))
         menu.addAction(action('Create Concept', 'c', self.menu_create_concept))
+        menu.addAction(action('Create Attribute', 'a', self.menu_create_attribute))
         menu.addAction(action('Create Relation', 'r', self.menu_create_relation))
         menu.addSeparator()
         menu.addAction(action('Update', 'Ctrl+f', self.menu_update))
