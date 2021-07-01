@@ -229,7 +229,7 @@ class GraphAnnotator(QMainWindow):
         font = QFont()
         font.setFamily('Courier New')
 
-        self.VERSION = '0.4'
+        self.VERSION = '0.5'
         self.RE_CONCEPT_ID = re.compile(r'([ca]\d+)')
         self.RE_CONCEPT_ID_PAREN = re.compile(r'(?:^| )\(([ca]\d+) /')
         self.FONT_GRAPH = font
@@ -886,12 +886,12 @@ def current_time():
 def main():
     parser = argparse.ArgumentParser(description='StreamSide Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-m', '--mode', type=str, default='wiser', help='wiser|amr')
+    parser.add_argument('-s', '--scheme', type=str, default='wiser', help='wiser|amr')
     parser.add_argument('-r', '--resources', type=str, default='', help='path to the directory containing resource files')
     args = parser.parse_args()
 
     app = QApplication([])
-    gui = GraphAnnotator(args.resources, args.mode, args.annotator)
+    gui = GraphAnnotator(args.resources, args.scheme, args.annotator)
     gui.show()
     sys.exit(app.exec_())
 

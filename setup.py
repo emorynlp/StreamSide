@@ -5,7 +5,7 @@ with open('README.md') as fh:
 
 setuptools.setup(
     name='streamside',
-    version='0.4',
+    version='0.5',
     scripts=[],
     author='Jinho D. Choi',
     author_email='jinho.choi@emory.edu',
