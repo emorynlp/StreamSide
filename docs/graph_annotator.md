@@ -8,8 +8,8 @@ The following describes the command to launch the graph annotator:
 python -m streamside.annotator -a ANNOTATOR_ID [-s wiser|amr -r RESOURCE_DIR] &
 ```
 * `-a` or `--annotator`: the ID of the annotator (required).
-* `-s` or `--scheme`: choose the representation `wisen` (default) or `amr`.
-* `-r` or `--resources`: the path to a custom resource directory; if not specified, it uses the default [resources](../streamside/resources/).
+* `-s` or `--schema`: choose the representation `wiser` (default) or `amr`.
+* `-r` or `--resource`: the path to a custom resource directory; if not specified, it uses the default [resources](../streamside/resources/).
 
 > For the following sections, replace the `Ctrl` key with the `Cmd` key if you are using a mac.
 

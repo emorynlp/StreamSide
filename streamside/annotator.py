@@ -886,12 +886,12 @@ def current_time():
 def main():
     parser = argparse.ArgumentParser(description='StreamSide Annotator')
     parser.add_argument('-a', '--annotator', type=str, help='annotator ID')
-    parser.add_argument('-s', '--scheme', type=str, default='wiser', help='wiser|amr')
-    parser.add_argument('-r', '--resources', type=str, default='', help='path to the directory containing resource files')
+    parser.add_argument('-s', '--schema', type=str, default='wiser', help='wiser|amr')
+    parser.add_argument('-r', '--resource', type=str, default='', help='path to the directory containing resource files')
     args = parser.parse_args()
 
     app = QApplication([])
-    gui = GraphAnnotator(args.resources, args.scheme, args.annotator)
+    gui = GraphAnnotator(args.resource, args.schema, args.annotator)
     gui.show()
     sys.exit(app.exec_())
 
