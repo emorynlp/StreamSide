@@ -11,6 +11,10 @@ This project is led by the [Emory NLP Research Laboratory](http://nlp.cs.emory.e
 * [JSON to Penman Convertor](https://github.com/emorynlp/StreamSide/blob/master/docs/json_to_penman.md)
 * [Penman to JSON Convertor](https://github.com/emorynlp/StreamSide/blob/master/docs/penman_to_json.md)
 
+## Citation
+
+* [StreamSide: A Fully-Customizable Open-Source Toolkit for Efficient Annotation of Meaning Representations](https://arxiv.org/abs/2109.09853). Jinho D. Choi and Gregor Williamson. arXiv, 2109.03903, 2021.
+
 ## Contact
 
 * [Jinho D. Choi](http://www.cs.emory.edu/~choi)
